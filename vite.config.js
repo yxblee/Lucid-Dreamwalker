@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  base: command === 'build' ? '/Lucid-Dreamwalker/' : '/',
   build: {
     chunkSizeWarningLimit: 600,
     rollupOptions: {
@@ -9,4 +10,4 @@ export default defineConfig({
       }
     }
   }
-});
+}));
