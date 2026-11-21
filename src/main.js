@@ -79,6 +79,7 @@ function save() {
 }
 
 function setScreen(id) {
+  if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
   window.scrollTo(0, 0);
   ['#title-screen', '#dream-intro', '#gameover-screen', '#win-screen', '#modal-overlay', '#dialogue'].forEach((selector) => { $(selector).hidden = selector !== id; });
 }
@@ -234,11 +235,11 @@ function finishDream(id) {
     : id === 'archivist' ? 'Mastered: time slow and rewind. Unlocked: flight and the Cartographer’s dream.'
     : 'The Somnus Lens is yours. Return it to the central dais.';
   openModal(`
-    <p class="modal-deck">Memory restored</p>
     <h2 id="modal-title">${titles[id]}</h2>
+    <p class="modal-deck">Memory restored · ${DREAMS[id].dreamer}</p>
     <div class="journal-entry"><p>“${CLUES[id]}”</p></div>
     <p class="modal-deck" style="margin-top:22px">${unlockText}</p>
-    <div class="modal-actions"><button class="primary-button" data-action="hub">Wake in the ruins <span>↗</span></button></div>
+    <div class="modal-actions"><button class="primary-button" data-action="hub"><span>Wake in the ruins</span><svg class="icon"><use href="#icon-arrow" /></svg></button></div>
   `, 'story');
   audio.sfx('memory');
 }
@@ -308,10 +309,20 @@ function updateVitals(data) {
   $('#focus-text').textContent = `${Math.ceil(data.focus)} / ${data.maxFocus}`;
   if (mode === 'hub') {
     const prompt = $('#interaction-prompt');
-    prompt.textContent = data.prompt || '';
-    prompt.hidden = !data.prompt;
+    const message = data.prompt || '';
+    if (prompt.dataset.message !== message) {
+      prompt.dataset.message = message;
+      prompt.replaceChildren();
+      if (message.startsWith('E  ')) {
+        const key = document.createElement('kbd');
+        key.textContent = 'E';
+        prompt.append(key, document.createTextNode(message.slice(3)));
+      } else prompt.textContent = message;
+    }
+    prompt.hidden = !message;
   }
   if (mode === 'dream') {
+    $('[data-ability="time"]').classList.toggle('active', data.timeActive);
     $('#memory-count').textContent = `${data.memories} of 3 memories`;
     $$('#memory-pips i').forEach((pip, index) => pip.classList.toggle('filled', index < data.memories));
     const seconds = Math.max(0, Math.ceil(data.remaining));
@@ -364,10 +375,10 @@ function openModal(content, type) {
 function showPause() {
   if (mode === 'title' || mode === 'win') return;
   openModal(`
-    <p class="modal-deck">The Hollow Hour waits</p><h2 id="modal-title">Between moments</h2>
-    <p class="modal-deck">Your current dream restarts from its threshold. Campaign progress and crystals are saved.</p>
+    <h2 id="modal-title">Between moments</h2>
+    <p class="modal-deck">The Hollow Hour waits. Your current dream restarts from its threshold.<br />Campaign progress and crystals are saved.</p>
     <div class="modal-actions">
-      <button class="primary-button" data-action="resume">Return to the dream <span>↗</span></button>
+      <button class="primary-button" data-action="resume"><span>Return to the dream</span><svg class="icon"><use href="#icon-arrow" /></svg></button>
       <button class="text-button" data-action="retry">Restart ${mode === 'dream' ? 'dream' : 'at the ruins'}</button>
       <button class="text-button" data-action="controls">Controls</button>
       <button class="text-button" data-action="title">Save & return to title</button>
@@ -377,16 +388,17 @@ function showPause() {
 
 function showUpgrades() {
   const stats = getStats(state);
+  const icons = { blade: 'strike', vitality: 'thread', focus: 'focus' };
   const rows = Object.entries(UPGRADES).map(([id, upgrade]) => {
     const level = state.upgrades[id];
     const disabled = state.crystals < upgrade.cost || level >= upgrade.max;
-    return `<div class="upgrade-row"><div><h3>${upgrade.name}<span class="upgrade-level">${level} / ${upgrade.max}</span></h3><p>${upgrade.detail}</p></div><button data-upgrade="${id}" ${disabled ? 'disabled' : ''}>${level >= upgrade.max ? 'Attuned' : `${upgrade.cost} crystals`}</button></div>`;
+    return `<div class="upgrade-row"><svg class="upgrade-icon icon"><use href="#icon-${icons[id]}" /></svg><div><h3>${upgrade.name}</h3><span class="upgrade-level">Attunement ${level} / ${upgrade.max}</span><p>${upgrade.detail}</p></div><button data-upgrade="${id}" ${disabled ? 'disabled' : ''}>${level >= upgrade.max ? 'Attuned' : `<svg class="icon"><use href="#icon-crystal" /></svg>${upgrade.cost} crystals`}</button></div>`;
   }).join('');
   openModal(`
-    <p class="modal-deck">Moon crystal attunement</p><h2 id="modal-title">Strengthen the thread</h2>
-    <p class="modal-deck">${state.crystals} crystals available · ${stats.damage} strike damage · ${stats.maxHealth} health · ${stats.maxFocus} focus</p>
+    <h2 id="modal-title">Strengthen the thread</h2>
+    <p class="modal-deck">Moon crystal attunement · ${state.crystals} crystals available<br />${stats.damage} strike damage · ${stats.maxHealth} health · ${stats.maxFocus} focus</p>
     <div class="upgrade-list">${rows}</div>
-    <div class="modal-actions"><button class="primary-button" data-action="resume">Return <span>↗</span></button></div>
+    <div class="modal-actions"><button class="primary-button" data-action="resume"><span>Return</span><svg class="icon"><use href="#icon-arrow" /></svg></button></div>
   `, 'upgrades');
 }
 
@@ -396,15 +408,16 @@ function showJournal() {
     return `<article class="journal-entry"><h3>${DREAMS[id].dreamer}</h3><p>${clue}</p></article>`;
   }).join('') : '<div class="journal-empty">No memories have answered you yet.<br />Enter the cyan arch and listen to the bellwright.</div>';
   openModal(`
-    <p class="modal-deck">Interconnected memories</p><h2 id="modal-title">The dream atlas</h2>
-    <p class="modal-deck">${state.completed.length} of 3 dreams restored ${state.artifact ? '· Somnus Lens recovered' : ''}</p>
-    ${entries}<div class="modal-actions"><button class="primary-button" data-action="resume">Close journal <span>↗</span></button></div>
+    <h2 id="modal-title">The dream atlas</h2>
+    <p class="modal-deck">Interconnected memories · ${state.completed.length} of 3 dreams restored ${state.artifact ? '· Somnus Lens recovered' : ''}</p>
+    ${entries}<div class="modal-actions"><button class="primary-button" data-action="resume"><span>Close journal</span><svg class="icon"><use href="#icon-arrow" /></svg></button></div>
   `, 'journal');
 }
 
 function showControls() {
   openModal(`
-    <p class="modal-deck">Dreamwalker’s field notes</p><h2 id="modal-title">Controls</h2>
+    <h2 id="modal-title">Dreamwalker’s field notes</h2>
+    <p class="modal-deck">Controls for the ruins and the three dreams.</p>
     <div class="controls-grid">
       <div><span>Move</span><kbd>WASD / arrows</kbd></div><div><span>Interact</span><kbd>E</kbd></div>
       <div><span>Jump / double jump</span><kbd>Space / W / ↑</kbd></div><div><span>Moonblade strike</span><kbd>J</kbd></div>
@@ -414,7 +427,7 @@ function showControls() {
       <div><span>Journal</span><kbd>Tab</kbd></div><div><span>Pause</span><kbd>Esc</kbd></div>
     </div>
     <p class="modal-deck" style="margin-top:24px">Collect all three memory sigils in each dream to open its waking gate. Time limits keep falling while you play, but menus pause the dream.</p>
-    <div class="modal-actions"><button class="primary-button" data-action="resume">Return <span>↗</span></button></div>
+    <div class="modal-actions"><button class="primary-button" data-action="resume"><span>Return</span><svg class="icon"><use href="#icon-arrow" /></svg></button></div>
   `, 'controls');
 }
 
@@ -423,8 +436,8 @@ function retry() {
   else enterHub();
 }
 
-async function handleAction(action) {
-  await audio.start();
+function handleAction(action) {
+  void audio.start().catch(() => {});
   audio.sfx('click');
   const actions = {
     new: () => transition(startNew), continue: continueGame, title: () => { save(); showTitle(); },
