@@ -842,7 +842,7 @@ export class DreamPlatformer {
     if (wall.x - this.camera.x < VIEW_W && wall.x - this.camera.x > 0) {
       ctx.fillStyle = '#f0d9aa';
       ctx.font = '16px sans-serif';
-      ctx.fillText('Space — shatter', wall.x - 32, wall.y - 15);
+      ctx.fillText('J — shatter', wall.x - 32, wall.y - 15);
     }
   }
 

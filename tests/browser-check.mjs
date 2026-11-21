@@ -73,6 +73,7 @@ try {
 
   await page.evaluate(() => window.__LUCID__.enterDream('bellwright'));
   await crossThreshold();
+  assert.equal(await page.locator('#touch-controls [data-key="Space"]').textContent(), 'Jump');
   await page.keyboard.down('Space');
   await waitFor(() => window.__LUCID__.getDream().player.vy < 0);
   await page.keyboard.up('Space');
@@ -163,6 +164,12 @@ try {
   const winRect = await page.locator('#win-screen').evaluate((screen) => screen.getBoundingClientRect().toJSON());
   assert.deepEqual({ x: winRect.x, y: winRect.y, width: winRect.width, height: winRect.height }, { x: 0, y: 0, width: 1440, height: 900 });
   await page.screenshot({ path: '.artifacts/win.png' });
+  await page.setViewportSize({ width: 390, height: 600 });
+  await page.waitForTimeout(100);
+  const mobileWinAction = await page.locator('#win-screen [data-action="new"]').boundingBox();
+  assert.ok(mobileWinAction.y >= 0 && mobileWinAction.y + mobileWinAction.height <= 600, 'Win actions remain reachable on short portrait screens');
+  await page.screenshot({ path: '.artifacts/mobile-win.png' });
+  await page.setViewportSize({ width: 1440, height: 900 });
   await page.click('#win-screen [data-action="new"]');
   await waitFor(() => window.__LUCID__.getMode() === 'hub');
   assert.equal(await page.evaluate(() => window.__LUCID__.getState().completed.length), 0);
@@ -174,8 +181,33 @@ try {
   assert.equal(await mobile.evaluate(() => document.documentElement.scrollWidth), 390);
   await mobile.close();
 
+  const tablet = await browser.newPage({ viewport: { width: 768, height: 1024 }, hasTouch: true, isMobile: true });
+  tablet.on('pageerror', (error) => errors.push(error.message));
+  await tablet.goto('http://127.0.0.1:5173', { waitUntil: 'networkidle' });
+  await tablet.click('[data-action="new"]');
+  await tablet.waitForFunction(() => window.__LUCID__.getMode() === 'hub');
+  assert.equal(await tablet.locator('#abilities').evaluate((element) => getComputedStyle(element).display), 'none');
+  const tabletLayout = await tablet.evaluate(() => ({
+    vitalsBottom: document.querySelector('.vitals').getBoundingClientRect().bottom,
+    touchTop: document.querySelector('.touch-dpad').getBoundingClientRect().top
+  }));
+  assert.ok(tabletLayout.vitalsBottom <= tabletLayout.touchTop, 'Vitals and touch controls do not overlap on tablets');
+  await tablet.close();
+
+  const unavailableAudio = await browser.newPage();
+  unavailableAudio.on('pageerror', (error) => errors.push(error.message));
+  await unavailableAudio.addInitScript(() => {
+    if (!window.AudioContext) return;
+    Object.defineProperty(window.AudioContext.prototype, 'state', { configurable: true, get: () => 'suspended' });
+    window.AudioContext.prototype.resume = () => new Promise(() => {});
+  });
+  await unavailableAudio.goto('http://127.0.0.1:5173', { waitUntil: 'networkidle' });
+  await unavailableAudio.click('[data-action="new"]');
+  await unavailableAudio.waitForFunction(() => window.__LUCID__.getMode() === 'hub');
+  await unavailableAudio.close();
+
   assert.deepEqual(errors, [], 'No browser errors');
-  console.log('Browser campaign passed: combat, all dreams and abilities, puzzles, upgrades, defeat/retry, save/continue, final win/restart, mobile layout, and clean console.');
+  console.log('Browser campaign passed: combat, all dreams and abilities, puzzles, upgrades, defeat/retry, save/continue, final win/restart, responsive layouts, unavailable audio, and clean console.');
 } finally {
   await browser.close();
 }
