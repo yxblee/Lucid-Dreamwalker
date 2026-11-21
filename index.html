@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#07171d" />
+    <meta name="description" content="Lucid (Dreamwalker) — a dreamwalking adventure through ancient ruins, inverted bells, stolen time, and shifting worlds." />
+    <title>LUCID — Dreamwalker</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2307171d'/%3E%3Cpath d='M42 8a24 24 0 1 0 14 40A22 22 0 1 1 42 8Z' fill='%2372f1d1'/%3E%3C/svg%3E" />
+  </head>
+  <body>
+    <main id="game" aria-label="Lucid (Dreamwalker) game">
+      <canvas id="world-canvas" aria-label="Three-dimensional ancient dream ruins"></canvas>
+      <canvas id="dream-canvas" aria-label="Two-dimensional dream platforming world" hidden></canvas>
+      <div class="film-grain" aria-hidden="true"></div>
+      <div id="damage-flash" aria-hidden="true"></div>
+
+      <section id="title-screen" class="screen title-screen">
+        <div class="title-copy">
+          <div class="brand-mark" aria-hidden="true"><span></span><i></i></div>
+          <p class="brand">LUCID</p>
+          <h1>The Hollow<br />Hour</h1>
+          <p class="title-deck">Every dream is a door.<br />Every memory, a piece of the truth.</p>
+          <div class="title-actions">
+            <button class="primary-button" data-action="new">Begin the descent <span>↗</span></button>
+            <button id="continue-button" class="text-button" data-action="continue" hidden>Continue your journey</button>
+          </div>
+          <button class="sound-button" data-action="mute" aria-label="Toggle sound"><span class="sound-icon">Sound</span> <span class="mute-label">on</span></button>
+        </div>
+        <div class="title-orbit" aria-hidden="true">
+          <div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="orbit orbit-three"></div>
+          <span class="orbit-star star-one"></span><span class="orbit-star star-two"></span><span class="orbit-star star-three"></span>
+          <p>One waking mind<br />Three sleeping truths</p>
+        </div>
+        <div class="title-footer">
+          <span>WASD / arrows to move</span><span>Space to jump or strike</span><span>E to enter dreams</span>
+        </div>
+      </section>
+
+      <div id="game-ui" hidden>
+        <header class="topbar">
+          <div class="mini-brand"><span class="mini-moon"></span>LUCID</div>
+          <div class="location"><span id="location-kicker">The waking world</span><strong id="location-name">Somnus Ruins</strong></div>
+          <nav aria-label="Game menus">
+            <button data-action="journal" title="Memory journal (Tab)">Journal <kbd>Tab</kbd></button>
+            <button data-action="upgrades" title="Upgrades (U)">Attune <kbd>U</kbd></button>
+            <button data-action="mute" title="Toggle sound (M)"><span class="mute-label">Sound on</span></button>
+            <button data-action="pause" title="Pause (Escape)" aria-label="Pause game">Ⅱ</button>
+          </nav>
+        </header>
+
+        <section class="objective-wrap" aria-label="Current objective">
+          <span class="objective-glyph" aria-hidden="true">◇</span>
+          <div><span>Current thread</span><p id="objective">Find the first dream</p></div>
+        </section>
+
+        <section class="resources" aria-label="Player resources">
+          <div><span>Dream level</span><strong id="level-value">1</strong></div>
+          <div><span>Moon crystals</span><strong class="crystal-value"><i class="crystal-icon"></i><span id="crystal-value">0</span></strong></div>
+        </section>
+
+        <section class="vitals" aria-label="Health and focus">
+          <div class="vital-label"><span>Waking thread</span><span id="health-text">100 / 100</span></div>
+          <div class="bar health-bar"><i id="health-fill"></i></div>
+          <div class="vital-label focus-label"><span>Lucid focus</span><span id="focus-text">100 / 100</span></div>
+          <div class="bar focus-bar"><i id="focus-fill"></i></div>
+          <div class="xp-row"><span id="xp-label">0 / 100 resonance</span><div class="xp-track"><i id="xp-fill"></i></div></div>
+        </section>
+
+        <section id="dream-progress" class="dream-progress" hidden>
+          <div id="memory-pips" aria-label="Memories collected"><i></i><i></i><i></i></div>
+          <span id="memory-count">0 of 3 memories</span>
+          <strong id="dream-timer">02:30</strong>
+        </section>
+
+        <section id="abilities" class="abilities" aria-label="Abilities">
+          <div data-ability="attack"><kbd>J</kbd><span>Strike</span></div>
+          <div data-ability="doubleJump"><kbd>Space</kbd><span>Double jump</span></div>
+          <div data-ability="gravity"><kbd>G</kbd><span>Invert</span></div>
+          <div data-ability="slide"><kbd>Shift</kbd><span>Slide</span></div>
+          <div data-ability="time"><kbd>Q</kbd><span>Slow time</span></div>
+          <div data-ability="rewind"><kbd>R</kbd><span>Rewind</span></div>
+          <div data-ability="fly"><kbd>F</kbd><span>Fly</span></div>
+        </section>
+
+        <div id="interaction-prompt" class="interaction-prompt" hidden></div>
+        <div class="control-hint"><span>Move</span> WASD / arrows <i></i><span>Pause</span> Esc</div>
+      </div>
+
+      <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+      <section id="dream-intro" class="screen dream-intro" hidden>
+        <div class="intro-number" id="intro-number">Dream I</div>
+        <p id="intro-dreamer">Mara, the bellwright</p>
+        <h2 id="intro-name">The Unstrung Bell</h2>
+        <blockquote id="intro-subtitle">A song remembers its ending.</blockquote>
+        <div class="intro-rule"><span>Dream law</span><p id="intro-rule"></p></div>
+        <button class="primary-button" data-action="resume">Cross the threshold <span>↗</span></button>
+      </section>
+
+      <section id="dialogue" class="dialogue" hidden aria-live="polite">
+        <div class="speaker-rune" aria-hidden="true">◌</div>
+        <div><h2 id="dialogue-title"></h2><p id="dialogue-text"></p></div>
+        <button class="text-button" data-action="resume">Continue</button>
+      </section>
+
+      <section id="modal-overlay" class="screen modal-overlay" hidden>
+        <div id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"></div>
+      </section>
+
+      <section id="gameover-screen" class="screen ending-screen" hidden>
+        <div class="ending-sigil broken" aria-hidden="true"></div>
+        <p class="ending-kicker">The thread slips</p>
+        <h2>Dreams are patient.</h2>
+        <p id="defeat-reason">Return to the last waking moment.</p>
+        <div class="ending-actions">
+          <button class="primary-button" data-action="retry">Try again <span>↻</span></button>
+          <button class="text-button" data-action="hub">Wake in the ruins</button>
+        </div>
+      </section>
+
+      <section id="win-screen" class="screen ending-screen win-screen" hidden>
+        <div class="lens-sigil" aria-hidden="true"><i></i><i></i><i></i></div>
+        <p class="ending-kicker">The Somnus Lens restored</p>
+        <h2>Morning remembers<br />your name.</h2>
+        <p class="win-copy">Mara’s song, Ilex’s minute, and Sera’s path were never separate. They were a promise made to the dreamwalker—you. The Hollow Hour is quiet. The ruins can finally wake.</p>
+        <div class="win-stats">
+          <div><strong id="win-time">0:00</strong><span>Journey</span></div>
+          <div><strong id="win-level">1</strong><span>Dream level</span></div>
+          <div><strong id="win-crystals">0</strong><span>Crystals found</span></div>
+          <div><strong id="win-enemies">0</strong><span>Wisps calmed</span></div>
+        </div>
+        <div class="ending-actions">
+          <button class="primary-button" data-action="new">Walk again <span>↻</span></button>
+          <button class="text-button" data-action="title">Return to title</button>
+        </div>
+      </section>
+
+      <div id="touch-controls" aria-label="Touch game controls">
+        <div class="touch-dpad">
+          <button data-key="ArrowLeft" aria-label="Move left">←</button>
+          <button data-key="ArrowUp" aria-label="Move up or jump">↑</button>
+          <button data-key="ArrowDown" aria-label="Move down">↓</button>
+          <button data-key="ArrowRight" aria-label="Move right">→</button>
+        </div>
+        <div class="touch-actions">
+          <button data-key="KeyE">E</button><button data-key="KeyJ">J</button>
+          <button data-key="Space">Jump</button><button data-key="KeyG">G</button>
+          <button data-key="ShiftLeft">Slide</button><button data-key="KeyQ">Q</button>
+          <button data-key="KeyR">R</button><button data-key="KeyF">F</button>
+        </div>
+      </div>
+      <div id="fade" aria-hidden="true"></div>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
