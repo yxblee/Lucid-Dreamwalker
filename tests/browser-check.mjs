@@ -73,9 +73,14 @@ try {
 
   await page.evaluate(() => window.__LUCID__.enterDream('bellwright'));
   await crossThreshold();
-  await page.keyboard.down('Space');
+  await page.keyboard.press('Space');
+  await waitFor(() => window.__LUCID__.getDream().player.attack > 0);
+  await page.waitForTimeout(300);
+  assert.equal(await page.evaluate(() => window.__LUCID__.getDream().player.jumps), 0);
+  assert.ok(await page.evaluate(() => window.__LUCID__.getDream().player.grounded));
+  await page.keyboard.down('KeyW');
   await waitFor(() => window.__LUCID__.getDream().player.vy < 0);
-  await page.keyboard.up('Space');
+  await page.keyboard.up('KeyW');
   assert.ok(await page.evaluate(() => window.__LUCID__.getDream().player.jumps) >= 1);
   const gravity = await page.evaluate(() => window.__LUCID__.getDream().gravity);
   await page.keyboard.press('KeyG');
@@ -105,10 +110,10 @@ try {
     const game = window.__LUCID__.getDream();
     Object.assign(game.player, { x: 300, y: 572, vx: 0, vy: 0, grounded: true, jumps: 0 });
   });
-  await page.keyboard.down('Space');
+  await page.keyboard.down('KeyW');
   await waitFor(() => window.__LUCID__.getDream().player.jumps === 1);
-  await page.keyboard.up('Space');
-  await page.keyboard.press('Space');
+  await page.keyboard.up('KeyW');
+  await page.keyboard.press('KeyW');
   await waitFor(() => window.__LUCID__.getDream().player.jumps === 2);
   await page.evaluate(() => {
     const game = window.__LUCID__.getDream();
@@ -134,7 +139,7 @@ try {
     const wall = game.level.walls[0];
     Object.assign(game.player, { x: wall.x - 45, y: wall.y + 40, vx: 0, vy: 0, facing: 1 });
   });
-  await page.keyboard.press('KeyJ');
+  await page.keyboard.press('Space');
   await waitFor(() => window.__LUCID__.getDream().level.walls[0].broken);
   await page.evaluate(() => {
     const game = window.__LUCID__.getDream();
