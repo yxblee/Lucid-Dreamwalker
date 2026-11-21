@@ -17,8 +17,9 @@ async function waitFor(fn, arg = null) {
   await page.waitForFunction(fn, arg, { timeout: 15000, polling: 100 });
 }
 
-async function crossThreshold() {
+async function crossThreshold(id) {
   await waitFor(() => window.__LUCID__.getMode() === 'dream' && !document.querySelector('#dream-intro').hidden);
+  assert.ok(await page.evaluate((dreamId) => window.__NARRATION_CUES__.includes(`voice-${dreamId}-intro`), id));
   await page.click('#dream-intro [data-action="resume"]', { force: true });
   await waitFor(() => !window.__LUCID__.getPaused());
 }
@@ -39,6 +40,7 @@ async function collectAndFinish(id) {
   });
   await waitFor(() => window.__LUCID__.getPaused());
   assert.ok(await page.evaluate((dreamId) => window.__LUCID__.getState().completed.includes(dreamId), id));
+  assert.ok(await page.evaluate((dreamId) => window.__NARRATION_CUES__.includes(`clue-${dreamId}`), id));
   await page.click('#modal [data-action="hub"]');
   await waitFor(() => window.__LUCID__.getMode() === 'hub' && !window.__LUCID__.getPaused());
 }
@@ -48,8 +50,71 @@ try {
   await page.waitForTimeout(800);
   assert.equal(await page.title(), 'LUCID — Dreamwalker');
   await page.screenshot({ path: '.artifacts/title.png' });
+  await page.evaluate(() => {
+    const audio = window.__LUCID__.getAudio();
+    window.__NARRATION_CUES__ = [];
+    window.__NARRATION_STOPS__ = 0;
+    const narrate = audio.narrate.bind(audio);
+    const stopNarration = audio.stopNarration.bind(audio);
+    audio.narrate = (id) => {
+      window.__NARRATION_CUES__.push(id);
+      return narrate(id);
+    };
+    audio.stopNarration = () => {
+      window.__NARRATION_STOPS__ += 1;
+      return stopNarration();
+    };
+  });
   await page.click('[data-action="new"]');
   await waitFor(() => window.__LUCID__.getMode() === 'hub');
+  assert.ok(await page.evaluate(() => window.__NARRATION_CUES__.includes('narration-opening')));
+  const generatedPlayback = await page.evaluate(async () => {
+    const audio = window.__LUCID__.getAudio();
+    const samples = 400;
+    const bytes = new Uint8Array(44 + samples * 2);
+    const view = new DataView(bytes.buffer);
+    const write = (offset, text) => [...text].forEach((character, index) => view.setUint8(offset + index, character.charCodeAt(0)));
+    write(0, 'RIFF');
+    view.setUint32(4, 36 + samples * 2, true);
+    write(8, 'WAVEfmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true);
+    view.setUint32(24, 8000, true);
+    view.setUint32(28, 16000, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    write(36, 'data');
+    view.setUint32(40, samples * 2, true);
+    for (let index = 0; index < samples; index += 1) view.setInt16(44 + index * 2, Math.sin(index / 8) * 5000, true);
+    const url = `data:audio/wav;base64,${btoa(String.fromCharCode(...bytes))}`;
+    const createBufferSource = audio.context.createBufferSource.bind(audio.context);
+    let sources = 0;
+    audio.context.createBufferSource = () => {
+      sources += 1;
+      return createBufferSource();
+    };
+    audio.assets['sfx-jump'] = url;
+    audio.assets['narration-opening'] = url;
+    const played = await audio.sfx('jump');
+    const narrated = await audio.narrate('narration-opening');
+    audio.stopNarration();
+    audio.context.createBufferSource = createBufferSource;
+    delete audio.assets['sfx-jump'];
+    delete audio.assets['narration-opening'];
+    return { played, narrated, sources };
+  });
+  assert.deepEqual(generatedPlayback, { played: true, narrated: true, sources: 2 });
+
+  await page.evaluate(() => {
+    const hub = window.__LUCID__.getHub();
+    hub.player.x = 0;
+    hub.player.z = -16;
+  });
+  await page.keyboard.press('KeyE');
+  await waitFor(() => !document.querySelector('#dialogue').hidden);
+  assert.ok(await page.evaluate(() => window.__NARRATION_CUES__.includes('narration-sealed')));
+  await page.click('#dialogue [data-action="resume"]');
 
   const startZ = await page.evaluate(() => window.__LUCID__.getHub().player.z);
   await page.keyboard.down('KeyW');
@@ -66,13 +131,25 @@ try {
   await waitFor(() => window.__LUCID__.getState().enemiesDefeated === 1);
   await page.screenshot({ path: '.artifacts/hub.png' });
 
+  await page.evaluate(() => {
+    const hub = window.__LUCID__.getHub();
+    hub.player.x = 0;
+    hub.player.z = 3.5;
+  });
+  await page.keyboard.press('KeyE');
+  await waitFor(() => !document.querySelector('#dialogue').hidden);
+  assert.ok(await page.evaluate(() => window.__NARRATION_CUES__.includes('narration-dais')));
+  await page.click('#dialogue [data-action="resume"]');
+
+  const narrationStops = await page.evaluate(() => window.__NARRATION_STOPS__);
   await page.keyboard.press('KeyU');
   await waitFor(() => window.__LUCID__.getPaused());
+  assert.ok(await page.evaluate((before) => window.__NARRATION_STOPS__ > before, narrationStops));
   assert.equal(await page.locator('#modal-title').textContent(), 'Strengthen the thread');
   await page.click('#modal [data-action="resume"]');
 
   await page.evaluate(() => window.__LUCID__.enterDream('bellwright'));
-  await crossThreshold();
+  await crossThreshold('bellwright');
   await page.keyboard.press('Space');
   await waitFor(() => window.__LUCID__.getDream().player.attack > 0);
   await page.waitForTimeout(300);
@@ -93,7 +170,7 @@ try {
   await page.evaluate(() => { window.__LUCID__.getDream().remaining = 0.01; });
   await waitFor(() => document.querySelector('#gameover-screen').hidden === false);
   await page.click('#gameover-screen [data-action="retry"]');
-  await crossThreshold();
+  await crossThreshold('bellwright');
   await collectAndFinish('bellwright');
   assert.equal(await page.evaluate(() => window.__LUCID__.getState().abilities.doubleJump), true);
 
@@ -105,7 +182,7 @@ try {
   assert.ok(await page.evaluate(() => window.__LUCID__.getState().completed.includes('bellwright')));
 
   await page.evaluate(() => window.__LUCID__.enterDream('archivist'));
-  await crossThreshold();
+  await crossThreshold('archivist');
   await page.evaluate(() => {
     const game = window.__LUCID__.getDream();
     Object.assign(game.player, { x: 300, y: 572, vx: 0, vy: 0, grounded: true, jumps: 0 });
@@ -130,7 +207,7 @@ try {
   assert.equal(await page.evaluate(() => window.__LUCID__.getState().abilities.fly), true);
 
   await page.evaluate(() => window.__LUCID__.enterDream('cartographer'));
-  await crossThreshold();
+  await crossThreshold('cartographer');
   await page.keyboard.down('KeyF');
   await waitFor(() => window.__LUCID__.getDream().player.vy < 0);
   await page.keyboard.up('KeyF');
@@ -164,6 +241,7 @@ try {
   });
   await page.keyboard.press('KeyE');
   await waitFor(() => window.__LUCID__.getMode() === 'win');
+  assert.ok(await page.evaluate(() => window.__NARRATION_CUES__.includes('narration-win')));
   await page.waitForTimeout(600);
   const winRect = await page.locator('#win-screen').evaluate((screen) => screen.getBoundingClientRect().toJSON());
   assert.deepEqual({ x: winRect.x, y: winRect.y, width: winRect.width, height: winRect.height }, { x: 0, y: 0, width: 1440, height: 900 });

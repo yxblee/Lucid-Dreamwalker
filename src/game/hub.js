@@ -508,7 +508,7 @@ export class RuinHub {
       this.prompt = state.artifact ? 'E  Return the Somnus Lens' : 'E  Listen to the empty dais';
       if (input.consume('KeyE')) {
         if (state.artifact) this.callbacks.onWin();
-        else this.callbacks.onDialogue('The Somnus Dais', 'Three hollows wait in the stone. Follow the dreamers’ memories; only their shared truth can wake the Lens.');
+        else this.callbacks.onDialogue('The Somnus Dais', 'Three hollows wait in the stone. Follow the dreamers’ memories; only their shared truth can wake the Lens.', 'narration-dais');
       }
     } else if (nearest && distance < 3.6) {
       const unlocked = state.unlocked.includes(nearest.id);
@@ -516,7 +516,7 @@ export class RuinHub {
       this.prompt = `E  ${unlocked ? (complete ? 'Revisit' : 'Enter') : 'Inspect'} ${nearest.name}`;
       if (input.consume('KeyE')) {
         if (unlocked) this.callbacks.onEnterDream(nearest.id);
-        else this.callbacks.onDialogue('A sealed threshold', 'This arch has no reflection. Another dreamer’s memory will show you the way here.');
+        else this.callbacks.onDialogue('A sealed threshold', 'This arch has no reflection. Another dreamer’s memory will show you the way here.', 'narration-sealed');
       }
     }
   }

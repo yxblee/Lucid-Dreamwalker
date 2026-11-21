@@ -2,7 +2,7 @@
 
 A finishable, single-player browser adventure RPG. Explore a rendered 3D ancient ruin, fight wisps, improve stats, and enter three linked dreams that transform the game into a 2D platformer. Recover the Somnus Lens by solving each dreamer's personal mystery.
 
-Built with vanilla JavaScript ES modules, Three.js (3D hub), Canvas 2D (dreams), and synthesized Web Audio. No external art or audio assets.
+Built with vanilla JavaScript ES modules, Three.js (3D hub), Canvas 2D (dreams), and Web Audio. Narration, Dreamer voice-overs, and effects can be generated with ElevenLabs; synthesized effects keep the game playable without generated assets. Visuals remain procedural.
 
 ## Quickstart
 
@@ -15,11 +15,26 @@ npm run preview      # preview the production build
 npm run test:browser # scripted browser campaign (dev server must be running)
 ```
 
+## ElevenLabs dream audio
+
+The game uses local generated assets when present and synthesized effects otherwise. No API key is shipped to the browser, and gameplay never calls ElevenLabs.
+
+Generation requires an ElevenLabs account and uses your plan's credits. Set the API key and either one shared voice or separate role voices in the environment, then run:
+
+```bash
+ELEVENLABS_API_KEY="your-key" ELEVENLABS_VOICE_ID="your-voice-id" npm run audio:generate
+```
+
+For distinct performances, configure `ELEVENLABS_NARRATOR_VOICE_ID`, `ELEVENLABS_MARA_VOICE_ID`, `ELEVENLABS_ILEX_VOICE_ID`, and `ELEVENLABS_SERA_VOICE_ID`. Role-specific IDs override `ELEVENLABS_VOICE_ID`. The command generates opening/ending narration, Dreamer introductions and Clues, hub voice-overs, and all gameplay effects through the [speech](https://elevenlabs.io/docs/api-reference/text-to-speech/convert) and [sound-generation](https://elevenlabs.io/docs/api-reference/sound-generation) APIs.
+
+MP3s are written to `public/audio/` and the browser manifest to `src/game/generated-audio.js`. Existing MP3s are reused; delete only the files you intend to regenerate. Review every new batch for pronunciation, pacing, loudness, content, and your plan's usage rights before committing it. Environment files are ignored by Git; do not put credentials in source files or command output.
+
 ## Project structure
 
 - `index.html`, `src/style.css`: application shell and responsive interface
 - `src/main.js`: screens, HUD, input, saves, and mode transitions
-- `src/game/`: progression, levels, physics, 3D hub, 2D engine, and audio
+- `src/game/`: progression, levels, physics, 3D hub, 2D engine, audio content, and playback
+- `scripts/`: author-time ElevenLabs generation and local asset manifest
 - `tests/`: deterministic unit tests plus a scripted browser campaign
 - `SPEC.md`: the V1 product spec (objective, boundaries, success criteria)
 - `GLOSSARY.md`: shared domain vocabulary
@@ -49,5 +64,5 @@ Principles, in short:
 ## Boundaries
 
 - Always: keep the campaign completable, validate saved data, support keyboard and touch, verify real gameplay.
-- Ask first: external services, licensed assets, backend dependencies.
-- Never: collect personal data, commit secrets, use third-party art or audio.
+- Ask first: new external services, licensed assets, backend dependencies. Author-time ElevenLabs audio generation is approved by ADR 0004.
+- Never: collect personal data, commit secrets, use unapproved third-party art or audio.

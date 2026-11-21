@@ -1,8 +1,26 @@
+import { GENERATED_AUDIO } from './generated-audio.js';
+
 export class DreamAudio {
-  constructor() {
+  constructor({
+    assets = GENERATED_AUDIO,
+    fetchImpl = globalThis.fetch.bind(globalThis),
+    contextClass = globalThis.AudioContext || globalThis.webkitAudioContext,
+    setInterval = globalThis.setInterval.bind(globalThis),
+    storage = globalThis.localStorage,
+    random = Math.random
+  } = {}) {
     this.context = null;
     this.master = null;
-    this.muted = localStorage.getItem('lucid-muted') === 'true';
+    this.assets = assets;
+    this.fetchImpl = fetchImpl;
+    this.contextClass = contextClass;
+    this.setInterval = setInterval;
+    this.storage = storage;
+    this.random = random;
+    this.buffers = new Map();
+    this.narrationSource = null;
+    this.narrationToken = 0;
+    this.muted = storage.getItem('lucid-muted') === 'true';
     this.mode = 'title';
     this.step = 0;
     this.musicTimer = null;
@@ -10,14 +28,13 @@ export class DreamAudio {
 
   async start() {
     if (!this.context) {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContext) return;
-      this.context = new AudioContext();
+      if (!this.contextClass) return;
+      this.context = new this.contextClass();
       this.master = this.context.createGain();
       this.master.gain.value = this.muted ? 0 : 0.42;
       this.master.connect(this.context.destination);
       this.createAmbience();
-      this.musicTimer = window.setInterval(() => this.musicStep(), 430);
+      this.musicTimer = this.setInterval(() => this.musicStep(), 430);
     }
     if (this.context.state === 'suspended') await this.context.resume();
   }
@@ -28,7 +45,8 @@ export class DreamAudio {
 
   toggle() {
     this.muted = !this.muted;
-    localStorage.setItem('lucid-muted', String(this.muted));
+    if (this.muted) this.stopNarration();
+    this.storage.setItem('lucid-muted', String(this.muted));
     if (this.master && this.context) {
       this.master.gain.setTargetAtTime(this.muted ? 0 : 0.42, this.context.currentTime, 0.04);
     }
@@ -53,7 +71,7 @@ export class DreamAudio {
     const length = ctx.sampleRate * 3;
     const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
     const data = buffer.getChannelData(0);
-    for (let i = 0; i < length; i++) data[i] = (Math.random() * 2 - 1) * 0.12;
+    for (let i = 0; i < length; i++) data[i] = (this.random() * 2 - 1) * 0.12;
     const noise = ctx.createBufferSource();
     const filter = ctx.createBiquadFilter();
     const noiseGain = ctx.createGain();
@@ -115,8 +133,69 @@ export class DreamAudio {
     oscillator.stop(ctx.currentTime + duration + 0.03);
   }
 
-  sfx(name) {
-    if (!this.context || this.muted) return;
+  async loadGenerated(id) {
+    if (!this.buffers.has(id)) {
+      const loading = this.fetchImpl(this.assets[id])
+        .then((response) => {
+          if (!response.ok) throw new Error(`Audio asset ${id} returned ${response.status}`);
+          return response.arrayBuffer();
+        })
+        .then((bytes) => this.context.decodeAudioData(bytes));
+      this.buffers.set(id, loading);
+    }
+    try {
+      return await this.buffers.get(id);
+    } catch {
+      this.buffers.delete(id);
+      return null;
+    }
+  }
+
+  async playGenerated(id, volume = 0.75) {
+    if (!this.context || this.muted || !this.assets[id]) return false;
+    const buffer = await this.loadGenerated(id);
+    if (!buffer || this.muted) return false;
+    const source = this.context.createBufferSource();
+    const gain = this.context.createGain();
+    source.buffer = buffer;
+    gain.gain.value = volume;
+    source.connect(gain).connect(this.master);
+    source.start();
+    return source;
+  }
+
+  stopNarration() {
+    this.narrationToken += 1;
+    if (this.narrationSource) this.narrationSource.stop();
+    this.narrationSource = null;
+  }
+
+  async narrate(id) {
+    this.stopNarration();
+    if (!this.context || this.muted || !this.assets[id]) return false;
+    const token = this.narrationToken;
+    const source = await this.playGenerated(id, 1);
+    if (!source) return false;
+    if (token !== this.narrationToken) {
+      source.stop();
+      return false;
+    }
+    this.narrationSource = source;
+    source.onended = () => {
+      if (this.narrationSource === source) this.narrationSource = null;
+    };
+    return true;
+  }
+
+  async sfx(name) {
+    if (!this.context || this.muted) return false;
+    const id = `sfx-${name}`;
+    if (this.assets[id] && await this.playGenerated(id)) return true;
+    this.playSynthSfx(name);
+    return true;
+  }
+
+  playSynthSfx(name) {
     const sounds = {
       jump: () => this.sweep(180, 390, 0.16, 0.09, 'triangle'),
       double: () => { this.sweep(260, 650, 0.2, 0.09); this.tone(780, 0.2, 0.04, 'sine', 0.06); },

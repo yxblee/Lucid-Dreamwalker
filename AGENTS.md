@@ -2,7 +2,7 @@
 
 ## Project
 
-Lucid (Dreamwalker): a single-player browser adventure RPG. 3D hub (Three.js) with combat and upgrades; three 2D platformer dreams (Canvas 2D). See `SPEC.md` for the V1 spec and `README.md` for the development workflow.
+Lucid (Dreamwalker): a single-player browser adventure RPG. 3D hub (Three.js) with combat and upgrades; three 2D platformer dreams (Canvas 2D). Web Audio provides playback and synthesized fallback, with optional ElevenLabs-generated narration, voice-overs, and effects. See `SPEC.md` for the V1 spec and `README.md` for the development workflow.
 
 Work is tracked as GitHub issues on `yxblee/Lucid-Dreamwalker` (use the `gh` CLI). Domain language lives in `GLOSSARY.md`; decisions live in `docs/adr/`. Use glossary terms in issue titles, test names, and proposals, and flag any output that contradicts an ADR.
 
@@ -12,6 +12,7 @@ Work is tracked as GitHub issues on `yxblee/Lucid-Dreamwalker` (use the `gh` CLI
 - Test: `npm test`
 - Build: `npm run build`
 - Browser campaign (dev server running): `npm run test:browser`
+- Generate ElevenLabs audio (credentials required): `npm run audio:generate`
 
 ## Code style
 
@@ -24,5 +25,5 @@ Test-first (red-green-refactor) for every behavior change. Unit tests run with `
 ## Boundaries
 
 - Always: keep the campaign completable, validate saved data, support keyboard and touch, verify real gameplay.
-- Ask first: external services, licensed assets, backend dependencies.
-- Never: collect personal data, commit secrets, use third-party art or audio.
+- Ask first: new external services, licensed assets, backend dependencies. Author-time ElevenLabs audio generation is approved by ADR 0004.
+- Never: collect personal data, commit secrets, use unapproved third-party art or audio.
