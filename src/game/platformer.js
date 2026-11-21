@@ -172,7 +172,7 @@ export class DreamPlatformer {
 
     if (p.grounded) this.coyoteTime = 0.11;
     else this.coyoteTime = Math.max(0, this.coyoteTime - dt);
-    if (input.consume('Space') || input.consume('KeyW') || input.consume('ArrowUp')) this.jumpBuffer = 0.13;
+    if (input.consume('KeyW') || input.consume('ArrowUp')) this.jumpBuffer = 0.13;
     else this.jumpBuffer = Math.max(0, this.jumpBuffer - dt);
     if (this.jumpBuffer > 0) {
       const canJump = p.grounded || this.coyoteTime > 0 || (this.state.abilities.doubleJump && p.jumps < 2);
@@ -188,7 +188,7 @@ export class DreamPlatformer {
       p.vy = clamp(p.vy, -900, 900);
     }
 
-    if (input.consume('KeyJ')) this.attack();
+    if (input.consume('Space')) this.attack();
     const solids = this.getSolids();
     moveAndCollide(p, solids, dt, this.gravity);
     p.x = clamp(p.x, 0, this.level.width - p.w);
@@ -690,7 +690,7 @@ export class DreamPlatformer {
     if (wall.x - this.camera.x < VIEW_W && wall.x - this.camera.x > 0) {
       ctx.fillStyle = '#f0d9aa';
       ctx.font = '16px sans-serif';
-      ctx.fillText('J — shatter', wall.x - 32, wall.y - 15);
+      ctx.fillText('Space — shatter', wall.x - 32, wall.y - 15);
     }
   }
 
@@ -829,9 +829,9 @@ export class DreamPlatformer {
     ctx.font = '15px sans-serif';
     if (this.elapsed < 10) {
       const instructions = {
-        bellwright: 'Space — jump   ·   G — invert gravity   ·   J — strike',
+        bellwright: 'W / ↑ — jump   ·   G — invert gravity   ·   Space — strike',
         archivist: 'Shift — slide   ·   Hold Q — slow time   ·   R — rewind two seconds',
-        cartographer: 'G — gravity   ·   F — fly   ·   Q / R — time   ·   J — shatter'
+        cartographer: 'G — gravity   ·   F — fly   ·   Q / R — time   ·   Space — shatter'
       };
       ctx.fillText(instructions[this.level.id], 42, 680);
     }

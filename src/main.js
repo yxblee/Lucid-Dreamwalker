@@ -407,7 +407,7 @@ function showControls() {
     <p class="modal-deck">Dreamwalker’s field notes</p><h2 id="modal-title">Controls</h2>
     <div class="controls-grid">
       <div><span>Move</span><kbd>WASD / arrows</kbd></div><div><span>Interact</span><kbd>E</kbd></div>
-      <div><span>Jump / double jump</span><kbd>Space / W / ↑</kbd></div><div><span>Moonblade strike</span><kbd>J</kbd></div>
+      <div><span>Jump / double jump</span><kbd>W / ↑</kbd></div><div><span>Moonblade strike</span><kbd>Space</kbd></div>
       <div><span>Invert gravity</span><kbd>G</kbd></div><div><span>Slide</span><kbd>Shift</kbd></div>
       <div><span>Slow time</span><kbd>Hold Q</kbd></div><div><span>Rewind two seconds</span><kbd>R</kbd></div>
       <div><span>Fly</span><kbd>Hold F</kbd></div><div><span>Attune upgrades</span><kbd>U</kbd></div>
