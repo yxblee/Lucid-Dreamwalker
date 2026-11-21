@@ -43,17 +43,38 @@ function stoneTexture() {
 function labelSprite(text, color = '#d9f9f2') {
   const canvas = document.createElement('canvas');
   canvas.width = 512;
-  canvas.height = 96;
+  canvas.height = 128;
   const ctx = canvas.getContext('2d');
-  ctx.font = '32px Georgia';
   ctx.textAlign = 'center';
   ctx.fillStyle = color;
-  ctx.fillText(text, 256, 48);
+  ctx.font = '500 29px "Cormorant Garamond", Georgia';
+  ctx.shadowColor = 'rgba(0,0,0,.8)';
+  ctx.shadowBlur = 8;
+  ctx.fillText(text, 256, 52);
+  ctx.shadowBlur = 0;
+  ctx.globalAlpha = 0.55;
+  ctx.fillRect(176, 76, 160, 1);
+  ctx.font = '500 10px "DM Sans", sans-serif';
+  ctx.fillText('D R E A M   T H R E S H O L D', 256, 101);
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false }));
-  sprite.scale.set(5.4, 1, 1);
+  sprite.scale.set(5.4, 1.35, 1);
   return sprite;
+}
+
+function glowTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+  gradient.addColorStop(0, 'rgba(255,255,255,.9)');
+  gradient.addColorStop(0.18, 'rgba(255,255,255,.35)');
+  gradient.addColorStop(0.5, 'rgba(255,255,255,.08)');
+  gradient.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, 128, 128);
+  return new THREE.CanvasTexture(canvas);
 }
 
 export class RuinHub {
@@ -70,25 +91,27 @@ export class RuinHub {
     this.enemies = [];
     this.portalObjects = new Map();
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x0a2029);
-    this.scene.fog = new THREE.FogExp2(0x0a2029, 0.021);
+    this.scene.background = new THREE.Color(0x07151e);
+    this.scene.fog = new THREE.FogExp2(0x0a1c25, 0.018);
     this.camera = new THREE.PerspectiveCamera(48, 1, 0.1, 140);
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.28;
+    this.renderer.toneMappingExposure = 1.16;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.glowTexture = glowTexture();
     this.buildWorld();
+    this.setTitle();
     this.resize();
   }
 
   buildWorld() {
     const scene = this.scene;
-    const hemi = new THREE.HemisphereLight(0xa8e4e2, 0x171923, 2.15);
+    const hemi = new THREE.HemisphereLight(0xa8d9dc, 0x131622, 1.75);
     scene.add(hemi);
-    const moon = new THREE.DirectionalLight(0xd6edff, 3.8);
+    const moon = new THREE.DirectionalLight(0xd6edff, 3.25);
     moon.position.set(-12, 24, 9);
     moon.castShadow = true;
     moon.shadow.mapSize.set(1024, 1024);
@@ -101,8 +124,9 @@ export class RuinHub {
     scene.add(rim);
 
     const texture = stoneTexture();
-    const stone = new THREE.MeshStandardMaterial({ map: texture, color: 0xa5b3aa, roughness: 0.94, metalness: 0.05 });
-    const darkStone = new THREE.MeshStandardMaterial({ map: texture, color: 0x344b50, roughness: 0.9 });
+    const stone = new THREE.MeshStandardMaterial({ map: texture, color: 0x91a69f, roughness: 0.9, metalness: 0.08 });
+    const darkStone = new THREE.MeshStandardMaterial({ map: texture, color: 0x2c4148, roughness: 0.92 });
+    const inlay = new THREE.MeshStandardMaterial({ color: 0xc4a86d, emissive: 0x5a4828, emissiveIntensity: 0.45, roughness: 0.48, metalness: 0.65 });
     const island = new THREE.Mesh(new THREE.CylinderGeometry(23, 20, 2.3, 64, 2), stone);
     island.position.y = -1.3;
     island.receiveShadow = true;
@@ -136,6 +160,19 @@ export class RuinHub {
       rune.rotation.y = angle;
       scene.add(rune);
     }
+    for (const radius of [5.25, 12.8]) {
+      const carvedRing = new THREE.Mesh(new THREE.RingGeometry(radius - 0.09, radius + 0.09, 64), darkStone);
+      carvedRing.rotation.x = -Math.PI / 2;
+      carvedRing.position.y = 0.018;
+      scene.add(carvedRing);
+    }
+    for (let i = 0; i < 24; i++) {
+      const angle = (i / 24) * Math.PI * 2;
+      const marker = new THREE.Mesh(new THREE.BoxGeometry(i % 3 === 0 ? 0.09 : 0.035, 0.018, i % 3 === 0 ? 0.48 : 0.24), inlay);
+      marker.position.set(Math.sin(angle) * 4.3, 0.045, Math.cos(angle) * 4.3);
+      marker.rotation.y = angle;
+      scene.add(marker);
+    }
 
     const dais = new THREE.Group();
     const base = new THREE.Mesh(new THREE.CylinderGeometry(3.3, 3.8, 0.55, 12), darkStone);
@@ -149,7 +186,19 @@ export class RuinHub {
     lens.position.y = 1.75;
     lens.scale.y = 1.6;
     dais.add(lens);
-    const light = new THREE.PointLight(0x6fffe0, 12, 10, 2);
+    this.lensOrbits = [];
+    for (let i = 0; i < 3; i++) {
+      const orbit = new THREE.Mesh(new THREE.TorusGeometry(0.9 + i * 0.18, 0.014, 5, 64), i === 1 ? inlay : ringMaterial);
+      orbit.position.y = 1.75;
+      orbit.rotation.set(Math.PI / 2.6 + i * 0.42, i * 0.8, 0);
+      dais.add(orbit);
+      this.lensOrbits.push(orbit);
+    }
+    const lensGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.glowTexture, color: 0x79f5dc, transparent: true, opacity: 0.32, blending: THREE.AdditiveBlending, depthWrite: false }));
+    lensGlow.position.y = 1.75;
+    lensGlow.scale.set(4.5, 4.5, 1);
+    dais.add(lensGlow);
+    const light = new THREE.PointLight(0x6fffe0, 9, 10, 2);
     light.position.y = 2;
     dais.add(light);
     scene.add(dais);
@@ -200,6 +249,13 @@ export class RuinHub {
     base.position.y = 0.2;
     base.receiveShadow = true;
     group.add(base);
+    const step = new THREE.Mesh(new THREE.CylinderGeometry(2.65, 2.9, 0.16, 10), stone);
+    step.position.y = -0.04;
+    step.receiveShadow = true;
+    group.add(step);
+    const threshold = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.035, 0.08), new THREE.MeshBasicMaterial({ color: data.color, transparent: true, opacity: 0.75 }));
+    threshold.position.set(0, 0.45, 0.55);
+    group.add(threshold);
     for (const side of [-1, 1]) {
       const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.65, 4.3, 0.85), stone);
       pillar.position.set(side * 1.55, 2.3, 0);
@@ -215,10 +271,21 @@ export class RuinHub {
     const veil = new THREE.Mesh(new THREE.CircleGeometry(1.42, 40), material);
     veil.position.y = 2.75;
     group.add(veil);
-    const orbit = new THREE.Mesh(new THREE.TorusGeometry(1.16, 0.025, 6, 64), new THREE.MeshBasicMaterial({ color: data.color, transparent: true, opacity: 0.8 }));
+    const orbit = new THREE.Mesh(new THREE.TorusGeometry(1.16, 0.018, 6, 64), new THREE.MeshBasicMaterial({ color: data.color, transparent: true, opacity: 0.72 }));
     orbit.position.y = 2.75;
     group.add(orbit);
-    const glow = new THREE.PointLight(data.color, 8, 8, 2);
+    const orbitTwo = new THREE.Mesh(new THREE.TorusGeometry(0.94, 0.012, 5, 64), new THREE.MeshBasicMaterial({ color: 0xe7c77f, transparent: true, opacity: 0.48 }));
+    orbitTwo.position.y = 2.75;
+    orbitTwo.rotation.y = 0.85;
+    group.add(orbitTwo);
+    const keystone = new THREE.Mesh(new THREE.OctahedronGeometry(0.22, 0), new THREE.MeshStandardMaterial({ color: 0xd8c28e, emissive: data.color, emissiveIntensity: 0.35, roughness: 0.45, metalness: 0.5 }));
+    keystone.position.y = 5.95;
+    group.add(keystone);
+    const mist = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.glowTexture, color: data.color, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false }));
+    mist.position.set(0, 0.8, 0);
+    mist.scale.set(7, 3.5, 1);
+    group.add(mist);
+    const glow = new THREE.PointLight(data.color, 7, 8, 2);
     glow.position.y = 2.5;
     group.add(glow);
     const beam = new THREE.Mesh(
@@ -231,44 +298,75 @@ export class RuinHub {
     label.position.set(0, 5.65, 0);
     group.add(label);
     this.scene.add(group);
-    this.portalObjects.set(data.id, { group, veil, orbit, glow, data });
+    this.portalObjects.set(data.id, { group, veil, orbit, orbitTwo, keystone, mist, glow, data });
     this.obstacles.push({ x: data.x - 1.55, z: data.z, radius: 0.55 }, { x: data.x + 1.55, z: data.z, radius: 0.55 });
   }
 
   buildCharacter() {
     const group = new THREE.Group();
-    const cloakMaterial = new THREE.MeshStandardMaterial({ color: 0x183c48, roughness: 0.75 });
-    const trimMaterial = new THREE.MeshStandardMaterial({ color: 0x75f3dc, emissive: 0x2a9e91, emissiveIntensity: 1.1 });
-    const skin = new THREE.MeshStandardMaterial({ color: 0xe9d7bd, roughness: 0.8 });
-    const cloak = new THREE.Mesh(new THREE.ConeGeometry(0.62, 1.5, 10, 1, true), cloakMaterial);
+    const cloakMaterial = new THREE.MeshStandardMaterial({ color: 0x142d3d, roughness: 0.78 });
+    const cloakInset = new THREE.MeshStandardMaterial({ color: 0x285d64, roughness: 0.68 });
+    const trimMaterial = new THREE.MeshStandardMaterial({ color: 0xd8bd7d, emissive: 0x6b572d, emissiveIntensity: 0.5, roughness: 0.45, metalness: 0.45 });
+    const bladeMaterial = new THREE.MeshStandardMaterial({ color: 0xbffcef, emissive: 0x43bda9, emissiveIntensity: 1.3, roughness: 0.25 });
+    const porcelain = new THREE.MeshStandardMaterial({ color: 0xeee4d2, roughness: 0.58 });
+    const cloak = new THREE.Mesh(new THREE.ConeGeometry(0.64, 1.55, 12, 1, true), cloakMaterial);
     cloak.position.y = 0.82;
     cloak.castShadow = true;
     group.add(cloak);
-    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.32, 0.55, 4, 8), cloakMaterial);
+    const inset = new THREE.Mesh(new THREE.ConeGeometry(0.48, 1.35, 12, 1, true), cloakInset);
+    inset.position.set(0, 0.83, 0.1);
+    inset.scale.set(0.85, 1, 0.85);
+    group.add(inset);
+    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.32, 0.55, 4, 10), cloakMaterial);
     body.position.y = 1.3;
     body.castShadow = true;
     group.add(body);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 12), skin);
-    head.position.y = 2.02;
-    head.castShadow = true;
-    group.add(head);
-    const hood = new THREE.Mesh(new THREE.SphereGeometry(0.36, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.6), cloakMaterial);
-    hood.position.y = 2.08;
+    const shoulders = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.58, 12, 1, true), cloakInset);
+    shoulders.position.y = 1.65;
+    shoulders.rotation.x = Math.PI;
+    group.add(shoulders);
+    const hood = new THREE.Mesh(new THREE.SphereGeometry(0.38, 20, 14), cloakMaterial);
+    hood.position.y = 2.04;
+    hood.scale.z = 0.92;
+    hood.castShadow = true;
     group.add(hood);
-    const scarf = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.055, 6, 20), trimMaterial);
+    const mask = new THREE.Mesh(new THREE.SphereGeometry(0.265, 20, 14), porcelain);
+    mask.position.set(0, 2.02, 0.245);
+    mask.scale.set(0.78, 1.05, 0.3);
+    group.add(mask);
+    const maskMark = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.18, 0.015), trimMaterial);
+    maskMark.position.set(0, 2.07, 0.33);
+    group.add(maskMark);
+    for (const side of [-1, 1]) {
+      const eye = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.025, 0.015), cloakMaterial);
+      eye.position.set(side * 0.08, 2.01, 0.334);
+      group.add(eye);
+    }
+    const scarf = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.045, 6, 24), trimMaterial);
     scarf.rotation.x = Math.PI / 2;
     scarf.position.y = 1.72;
     group.add(scarf);
+    this.scarfSegments = [];
+    for (let i = 0; i < 3; i++) {
+      const segment = new THREE.Mesh(new THREE.BoxGeometry(0.1 - i * 0.015, 0.035, 0.52), trimMaterial);
+      segment.position.set(-0.18, 1.72 - i * 0.06, -0.42 - i * 0.45);
+      segment.rotation.x = -0.12 - i * 0.08;
+      group.add(segment);
+      this.scarfSegments.push(segment);
+    }
+    const clasp = new THREE.Mesh(new THREE.OctahedronGeometry(0.09, 0), bladeMaterial);
+    clasp.position.set(0, 1.65, 0.39);
+    group.add(clasp);
     const sword = new THREE.Group();
-    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.075, 1.2, 0.025), trimMaterial);
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.055, 1.15, 0.025), bladeMaterial);
     blade.position.y = 0.6;
     sword.add(blade);
-    const hilt = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.07, 0.08), trimMaterial);
+    const hilt = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.055, 0.07), trimMaterial);
     sword.add(hilt);
     sword.position.set(0.55, 1.1, 0);
     sword.rotation.z = -0.35;
     group.add(sword);
-    const shadow = new THREE.Mesh(new THREE.CircleGeometry(0.7, 20), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.25, depthWrite: false }));
+    const shadow = new THREE.Mesh(new THREE.CircleGeometry(0.7, 24), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.25, depthWrite: false }));
     shadow.rotation.x = -Math.PI / 2;
     shadow.position.y = 0.035;
     group.add(shadow);
@@ -282,13 +380,26 @@ export class RuinHub {
     const positions = [[-6, 9], [7, 10], [-15, -1], [15, 0], [-5, -10], [6, -11]];
     for (const [x, z] of positions) {
       const group = new THREE.Group();
-      const core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.42, 1), new THREE.MeshStandardMaterial({ color: 0x371d4b, emissive: 0xb74b9b, emissiveIntensity: 1.8, roughness: 0.25 }));
+      const core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.35, 1), new THREE.MeshStandardMaterial({ color: 0x25152f, emissive: 0x9d386e, emissiveIntensity: 1.25, roughness: 0.32, metalness: 0.25 }));
       core.castShadow = true;
       group.add(core);
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.65, 0.035, 6, 24), new THREE.MeshBasicMaterial({ color: 0xff79bd }));
-      ring.rotation.x = Math.PI / 2;
+      const cage = new THREE.Mesh(new THREE.IcosahedronGeometry(0.49, 1), new THREE.MeshBasicMaterial({ color: 0xf190bd, wireframe: true, transparent: true, opacity: 0.36 }));
+      group.add(cage);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.67, 0.018, 6, 40), new THREE.MeshBasicMaterial({ color: 0xf1a4c5, transparent: true, opacity: 0.8 }));
+      ring.rotation.set(Math.PI / 2.5, 0.3, 0);
       group.add(ring);
-      const light = new THREE.PointLight(0xf357ac, 3, 4);
+      const orbiters = [];
+      for (let i = 0; i < 3; i++) {
+        const shard = new THREE.Mesh(new THREE.OctahedronGeometry(0.09, 0), new THREE.MeshBasicMaterial({ color: i === 0 ? 0xf3cf7a : 0xffa5ca }));
+        shard.position.set(Math.sin(i * 2.1) * 0.85, (i - 1) * 0.2, Math.cos(i * 2.1) * 0.85);
+        group.add(shard);
+        orbiters.push(shard);
+      }
+      group.userData = { cage, orbiters };
+      const aura = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.glowTexture, color: 0xe263a2, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false }));
+      aura.scale.set(2.6, 2.6, 1);
+      group.add(aura);
+      const light = new THREE.PointLight(0xf357ac, 2.2, 4);
       group.add(light);
       group.position.set(x, 1.1, z);
       this.scene.add(group);
@@ -314,7 +425,15 @@ export class RuinHub {
   }
 
   buildSky() {
-    const count = 500;
+    const sky = new THREE.Mesh(new THREE.SphereGeometry(105, 32, 18), new THREE.ShaderMaterial({
+      side: THREE.BackSide,
+      depthWrite: false,
+      uniforms: { topColor: { value: new THREE.Color(0x030914) }, bottomColor: { value: new THREE.Color(0x1b4248) } },
+      vertexShader: 'varying vec3 vPosition; void main() { vPosition = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+      fragmentShader: 'uniform vec3 topColor; uniform vec3 bottomColor; varying vec3 vPosition; void main() { float h = normalize(vPosition).y; float mixValue = pow(max(h, 0.0), 0.65); gl_FragColor = vec4(mix(bottomColor, topColor, mixValue), 1.0); }'
+    }));
+    this.scene.add(sky);
+    const count = 620;
     const positions = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
       const radius = 55 + Math.random() * 40;
@@ -326,10 +445,37 @@ export class RuinHub {
     }
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    this.scene.add(new THREE.Points(geometry, new THREE.PointsMaterial({ color: 0xc6f7ff, size: 0.18, transparent: true, opacity: 0.8 })));
-    const moon = new THREE.Mesh(new THREE.SphereGeometry(4, 32, 24), new THREE.MeshBasicMaterial({ color: 0xb9e5e3 }));
+    this.scene.add(new THREE.Points(geometry, new THREE.PointsMaterial({ color: 0xd5f7ff, size: 0.14, transparent: true, opacity: 0.78, depthWrite: false })));
+    const moon = new THREE.Mesh(new THREE.SphereGeometry(3.6, 32, 24), new THREE.MeshBasicMaterial({ color: 0xd2e5df }));
     moon.position.set(-30, 27, -55);
     this.scene.add(moon);
+    const moonGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.glowTexture, color: 0xa4e4dc, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false }));
+    moonGlow.position.copy(moon.position);
+    moonGlow.scale.set(21, 21, 1);
+    this.scene.add(moonGlow);
+
+    const silhouette = new THREE.MeshStandardMaterial({ color: 0x162a31, roughness: 1 });
+    for (let i = 0; i < 7; i++) {
+      const angle = -1.15 + i * 0.39;
+      const radius = 40 + (i % 3) * 8;
+      const island = new THREE.Group();
+      island.position.set(Math.sin(angle) * radius, -2 - (i % 2) * 2, -Math.cos(angle) * radius);
+      const top = new THREE.Mesh(new THREE.CylinderGeometry(3.4, 2.8, 0.8, 9), silhouette);
+      island.add(top);
+      const root = new THREE.Mesh(new THREE.ConeGeometry(2.8, 7 + (i % 3) * 2, 9), silhouette);
+      root.position.y = -3.7;
+      root.rotation.x = Math.PI;
+      island.add(root);
+      for (const side of [-1, 1]) {
+        const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.45, 3.8, 0.55), silhouette);
+        pillar.position.set(side * 1.4, 2.2, 0);
+        island.add(pillar);
+      }
+      const arch = new THREE.Mesh(new THREE.TorusGeometry(1.4, 0.26, 6, 20, Math.PI), silhouette);
+      arch.position.y = 4;
+      island.add(arch);
+      this.scene.add(island);
+    }
   }
 
   enter(state) {
@@ -337,12 +483,16 @@ export class RuinHub {
     this.player.x = 0;
     this.player.z = 10;
     this.player.health = getStats(state).maxHealth;
+    this.character.visible = true;
     this.character.position.set(0, 0, 10);
+    for (const enemy of this.enemies) enemy.group.visible = enemy.alive;
     this.updateUnlocks(state);
   }
 
   setTitle() {
     this.active = false;
+    this.character.visible = false;
+    for (const enemy of this.enemies) enemy.group.visible = false;
   }
 
   updateUnlocks(state) {
@@ -414,6 +564,15 @@ export class RuinHub {
   animateWorld(dt) {
     this.lens.rotation.y += dt * 0.7;
     this.lens.position.y = 1.75 + Math.sin(this.time * 1.5) * 0.12;
+    this.lensOrbits.forEach((orbit, index) => {
+      orbit.position.y = this.lens.position.y;
+      orbit.rotation.z += dt * (0.18 + index * 0.08) * (index % 2 ? -1 : 1);
+      orbit.rotation.y += dt * 0.12;
+    });
+    this.scarfSegments.forEach((segment, index) => {
+      segment.rotation.y = Math.sin(this.time * 3 - index * 0.7) * (0.13 + index * 0.05);
+      segment.rotation.x = -0.12 - index * 0.08 + Math.sin(this.time * 4 - index) * 0.06;
+    });
     this.particles.rotation.y += dt * 0.012;
     const positions = this.particles.geometry.attributes.position;
     for (let i = 0; i < positions.count; i++) {
@@ -425,6 +584,11 @@ export class RuinHub {
     this.water.material.opacity = 0.78 + Math.sin(this.time * 0.4) * 0.04;
     for (const portal of this.portalObjects.values()) {
       portal.orbit.rotation.z += dt * 0.35;
+      portal.orbitTwo.rotation.z -= dt * 0.24;
+      portal.orbitTwo.rotation.y += dt * 0.1;
+      portal.keystone.rotation.y += dt * 0.5;
+      portal.keystone.position.y = 5.95 + Math.sin(this.time * 1.4 + portal.data.x) * 0.08;
+      portal.mist.material.opacity = 0.1 + Math.sin(this.time + portal.data.x) * 0.025;
       portal.veil.material.opacity += Math.sin(this.time * 2 + portal.data.x) * dt * 0.015;
     }
   }
@@ -436,9 +600,9 @@ export class RuinHub {
       target = new THREE.Vector3(this.player.x, 1, this.player.z - 1.5);
       desired = new THREE.Vector3(this.player.x, 15.5, this.player.z + 13);
     } else {
-      const angle = this.time * 0.035 + 0.4;
-      target = new THREE.Vector3(0, 1.5, -3);
-      desired = new THREE.Vector3(Math.sin(angle) * 25, 14, Math.cos(angle) * 25);
+      const angle = Math.sin(this.time * 0.045) * 0.08 + 0.68;
+      target = new THREE.Vector3(2.5, 2.2, -5.5);
+      desired = new THREE.Vector3(Math.sin(angle) * 28, 12.5, Math.cos(angle) * 28);
     }
     this.camera.position.lerp(desired, 1 - Math.exp(-dt * (this.active ? 5 : 1.2)));
     this.camera.lookAt(target);
@@ -472,6 +636,14 @@ export class RuinHub {
       enemy.cooldown = Math.max(0, enemy.cooldown - dt);
       enemy.phase += dt;
       enemy.ring.rotation.z += dt * 1.8;
+      enemy.core.rotation.y += dt * 0.8;
+      enemy.group.userData.cage.rotation.x -= dt * 0.35;
+      enemy.group.userData.cage.rotation.y += dt * 0.55;
+      enemy.group.userData.orbiters.forEach((shard, index) => {
+        const angle = enemy.phase * (0.8 + index * 0.15) + index * 2.1;
+        shard.position.set(Math.sin(angle) * 0.85, Math.sin(angle * 1.7) * 0.28, Math.cos(angle) * 0.85);
+        shard.rotation.y += dt * 2;
+      });
       enemy.group.scale.lerp(new THREE.Vector3(1, 1, 1), dt * 8);
       const dx = this.player.x - enemy.x;
       const dz = this.player.z - enemy.z;
@@ -508,7 +680,7 @@ export class RuinHub {
       this.prompt = state.artifact ? 'E  Return the Somnus Lens' : 'E  Listen to the empty dais';
       if (input.consume('KeyE')) {
         if (state.artifact) this.callbacks.onWin();
-        else this.callbacks.onDialogue('The Somnus Dais', 'Three hollows wait in the stone. Follow the dreamers’ memories; only their shared truth can wake the Lens.');
+        else this.callbacks.onDialogue('The Somnus Dais', 'Three hollows wait in the stone. Follow the dreamers’ memories; only their shared truth can wake the Lens.', 'narration-dais');
       }
     } else if (nearest && distance < 3.6) {
       const unlocked = state.unlocked.includes(nearest.id);
@@ -516,7 +688,7 @@ export class RuinHub {
       this.prompt = `E  ${unlocked ? (complete ? 'Revisit' : 'Enter') : 'Inspect'} ${nearest.name}`;
       if (input.consume('KeyE')) {
         if (unlocked) this.callbacks.onEnterDream(nearest.id);
-        else this.callbacks.onDialogue('A sealed threshold', 'This arch has no reflection. Another dreamer’s memory will show you the way here.');
+        else this.callbacks.onDialogue('A sealed threshold', 'This arch has no reflection. Another dreamer’s memory will show you the way here.', 'narration-sealed');
       }
     }
   }
