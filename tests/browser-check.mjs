@@ -2,6 +2,8 @@ import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 
+const BASE_URL = process.env.LUCID_BASE_URL || 'http://127.0.0.1:5173';
+
 await mkdir('.artifacts', { recursive: true });
 const browser = await chromium.launch({
   headless: true,
@@ -46,7 +48,7 @@ async function collectAndFinish(id) {
 }
 
 try {
-  await page.goto('http://127.0.0.1:5173', { waitUntil: 'networkidle' });
+  await page.goto(BASE_URL, { waitUntil: 'networkidle' });
   await page.waitForTimeout(800);
   assert.equal(await page.title(), 'LUCID — Dreamwalker');
   await page.screenshot({ path: '.artifacts/title.png' });
@@ -252,7 +254,7 @@ try {
 
   const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
   mobile.on('pageerror', (error) => errors.push(error.message));
-  await mobile.goto('http://127.0.0.1:5173', { waitUntil: 'networkidle' });
+  await mobile.goto(BASE_URL, { waitUntil: 'networkidle' });
   await mobile.screenshot({ path: '.artifacts/mobile-title.png' });
   assert.equal(await mobile.evaluate(() => document.documentElement.scrollWidth), 390);
   await mobile.close();
