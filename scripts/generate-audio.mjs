@@ -1,13 +1,9 @@
 import { fileURLToPath } from 'node:url';
 import { AUDIO_ASSETS } from '../src/game/audio-library.js';
-import { generateAudioLibrary } from './elevenlabs-client.js';
+import { generateAudioLibrary, resolveVoiceIds } from './elevenlabs-client.js';
 
 const apiKey = process.env.ELEVENLABS_API_KEY;
-const sharedVoiceId = process.env.ELEVENLABS_VOICE_ID;
-const voiceIds = Object.fromEntries(['narrator', 'mara', 'ilex', 'sera'].map((role) => [
-  role,
-  process.env[`ELEVENLABS_${role.toUpperCase()}_VOICE_ID`] || sharedVoiceId
-]));
+const voiceIds = resolveVoiceIds(process.env);
 
 if (!apiKey) {
   console.error('Set ELEVENLABS_API_KEY before generating audio. No requests were made.');

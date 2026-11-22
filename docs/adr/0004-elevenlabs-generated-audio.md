@@ -6,7 +6,7 @@ Narration, Dreamer voice-overs, and sound effects may be generated with ElevenLa
 
 The original no-external-assets constraint kept the game self-contained and avoided licensing questions. Issue #2 explicitly asks for ElevenLabs narration, voice-overs, and sound effects, so audio now has a narrow exception with a controlled generation pipeline.
 
-A Node command calls ElevenLabs' text-to-speech and sound-generation endpoints using environment variables for the API key and voice IDs. It writes local files under `public/audio/` and a browser-safe manifest in `src/game/generated-audio.js`. The browser never receives the key, calls ElevenLabs, or sends player data to the service. Existing files are reused so routine generation does not repeatedly incur charges.
+A Node command uses the official `@elevenlabs/elevenlabs-js` SDK with `eleven_v4` speech and `eleven_text_to_sound_v3` effects. The API key comes from the environment, with optional shared or role-specific voice IDs; George is the default pre-made voice. It writes local files under `public/audio/` and a browser-safe manifest in `src/game/generated-audio.js`. The browser never receives the key, calls ElevenLabs, or sends player data to the service. Existing files are reused so routine generation does not repeatedly incur charges.
 
 `DreamAudio` plays manifest assets through the existing Web Audio graph. Synthesized sound remains the fallback when generated effects are absent or cannot be decoded, and the campaign requires no credentials or network access. Missing generated narration is silent. Mute persists, and starting a story cue or leaving its screen interrupts the previous narration.
 
