@@ -1,5 +1,14 @@
 import { GENERATED_AUDIO } from './generated-audio.js';
 
+const MUSIC_GAINS = {
+  title: 0.9,
+  hub: 0.43,
+  bellwright: 0.1,
+  archivist: 0.92,
+  cartographer: 0.1,
+  win: 0.09
+};
+
 export class DreamAudio {
   constructor({
     assets = GENERATED_AUDIO,
@@ -24,6 +33,9 @@ export class DreamAudio {
     this.mode = 'title';
     this.step = 0;
     this.musicTimer = null;
+    this.musicSource = null;
+    this.musicGain = null;
+    this.musicToken = 0;
   }
 
   async start() {
@@ -37,20 +49,76 @@ export class DreamAudio {
       this.musicTimer = this.setInterval(() => this.musicStep(), 430);
     }
     if (this.context.state === 'suspended') await this.context.resume();
+    if (!this.musicSource) await this.syncMusic();
   }
 
   setMode(mode) {
     this.mode = mode;
+    this.step = 0;
+    return this.syncMusic();
   }
 
-  toggle() {
+  async syncMusic() {
+    const token = ++this.musicToken;
+    const previousSource = this.musicSource;
+    const previousGain = this.musicGain;
+    const id = `music-${this.mode}`;
+    if (!this.context || this.muted || !this.assets[id]) {
+      if (previousSource) previousSource.stop();
+      this.musicSource = null;
+      this.musicGain = null;
+      return false;
+    }
+    const buffer = await this.loadGenerated(id);
+    if (!buffer) {
+      if (token === this.musicToken) {
+        if (previousSource) previousSource.stop();
+        this.musicSource = null;
+        this.musicGain = null;
+      }
+      return false;
+    }
+    if (this.muted || token !== this.musicToken) return false;
+    const now = this.context.currentTime;
+    const fadeDuration = 0.8;
+    if (previousSource) {
+      previousGain.gain.cancelScheduledValues(now);
+      previousGain.gain.setValueAtTime(previousGain.gain.value, now);
+      previousGain.gain.linearRampToValueAtTime(0, now + fadeDuration);
+      previousSource.stop(now + fadeDuration);
+    }
+    const source = this.context.createBufferSource();
+    const gain = this.context.createGain();
+    source.buffer = buffer;
+    source.loop = true;
+    gain.gain.value = 0;
+    gain.gain.linearRampToValueAtTime(MUSIC_GAINS[this.mode] || 0.16, now + fadeDuration);
+    source.connect(gain).connect(this.master);
+    source.start();
+    this.musicSource = source;
+    this.musicGain = gain;
+    return true;
+  }
+
+  async toggle() {
     this.muted = !this.muted;
-    if (this.muted) this.stopNarration();
+    if (this.muted) {
+      this.stopNarration();
+      this.stopMusic();
+    }
     this.storage.setItem('lucid-muted', String(this.muted));
     if (this.master && this.context) {
       this.master.gain.setTargetAtTime(this.muted ? 0 : 0.42, this.context.currentTime, 0.04);
     }
+    if (!this.muted) await this.syncMusic();
     return this.muted;
+  }
+
+  stopMusic() {
+    this.musicToken += 1;
+    if (this.musicSource) this.musicSource.stop();
+    this.musicSource = null;
+    this.musicGain = null;
   }
 
   createAmbience() {
@@ -85,7 +153,7 @@ export class DreamAudio {
   }
 
   musicStep() {
-    if (!this.context || this.muted || this.context.state !== 'running') return;
+    if (!this.context || this.muted || this.musicSource || this.context.state !== 'running') return;
     const sequences = {
       title: [0, 7, 3, 10, 5, 12, 7, 3],
       hub: [0, 3, 7, 10, 7, 5, 3, -2],

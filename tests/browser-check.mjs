@@ -19,8 +19,13 @@ async function waitFor(fn, arg = null) {
   await page.waitForFunction(fn, arg, { timeout: 15000, polling: 100 });
 }
 
+async function waitForMusic(mode) {
+  await waitFor((scene) => window.__MUSIC_CUES__.some((cue) => cue.mode === scene && cue.played), mode);
+}
+
 async function crossThreshold(id) {
   await waitFor(() => window.__LUCID__.getMode() === 'dream' && !document.querySelector('#dream-intro').hidden);
+  await waitForMusic(id);
   assert.ok(await page.evaluate((dreamId) => window.__NARRATION_CUES__.includes(`voice-${dreamId}-intro`), id));
   assert.equal(await page.locator('#game').getAttribute('data-dream'), id);
   assert.equal(await page.evaluate(() => document.activeElement.dataset.action), 'resume');
@@ -50,6 +55,7 @@ async function collectAndFinish(id) {
   assert.ok(await page.evaluate((dreamId) => window.__NARRATION_CUES__.includes(`clue-${dreamId}`), id));
   await page.click('#modal [data-action="hub"]');
   await waitFor(() => window.__LUCID__.getMode() === 'hub' && !window.__LUCID__.getPaused());
+  await waitForMusic('hub');
 }
 
 try {
@@ -66,8 +72,15 @@ try {
     const audio = window.__LUCID__.getAudio();
     window.__NARRATION_CUES__ = [];
     window.__NARRATION_STOPS__ = 0;
+    window.__MUSIC_CUES__ = [];
     const narrate = audio.narrate.bind(audio);
     const stopNarration = audio.stopNarration.bind(audio);
+    const setMode = audio.setMode.bind(audio);
+    audio.setMode = async (mode) => {
+      const played = await setMode(mode);
+      window.__MUSIC_CUES__.push({ mode, played });
+      return played;
+    };
     audio.narrate = (id) => {
       window.__NARRATION_CUES__.push(id);
       return narrate(id);
@@ -79,6 +92,7 @@ try {
   });
   await page.click('[data-action="new"]');
   await waitFor(() => window.__LUCID__.getMode() === 'hub');
+  await waitForMusic('hub');
   assert.ok(await page.evaluate(() => window.__NARRATION_CUES__.includes('narration-opening')));
   const generatedPlayback = await page.evaluate(async () => {
     const audio = window.__LUCID__.getAudio();
@@ -224,6 +238,7 @@ try {
   assert.equal(await page.evaluate(() => document.activeElement.dataset.action), 'controls');
   await page.click('#modal [data-action="title"]');
   await waitFor(() => window.__LUCID__.getMode() === 'title');
+  await waitForMusic('title');
   assert.match(await page.locator('#continue-meta').textContent(), /1 of 3 dreams restored · Dream level 1/);
   await page.waitForTimeout(650);
   await page.screenshot({ path: '.artifacts/title-continue.png' });
@@ -292,6 +307,7 @@ try {
   });
   await page.keyboard.press('KeyE');
   await waitFor(() => window.__LUCID__.getMode() === 'win');
+  await waitForMusic('win');
   assert.ok(await page.evaluate(() => window.__NARRATION_CUES__.includes('narration-win')));
   await page.waitForTimeout(600);
   const winRect = await page.locator('#win-screen').evaluate((screen) => screen.getBoundingClientRect().toJSON());
@@ -321,7 +337,7 @@ try {
 
   const tablet = await browser.newPage({ viewport: { width: 768, height: 1024 }, hasTouch: true, isMobile: true });
   tablet.on('pageerror', (error) => errors.push(error.message));
-  await tablet.goto('http://127.0.0.1:5173', { waitUntil: 'networkidle' });
+  await tablet.goto(BASE_URL, { waitUntil: 'networkidle' });
   await tablet.click('[data-action="new"]');
   await tablet.waitForFunction(() => window.__LUCID__.getMode() === 'hub');
   assert.equal(await tablet.locator('#abilities').evaluate((element) => getComputedStyle(element).display), 'none');

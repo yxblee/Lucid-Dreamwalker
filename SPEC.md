@@ -4,7 +4,7 @@
 A finishable, single-player browser adventure RPG. Explore a rendered 3D ancient ruin, fight wisps, improve stats, and enter three linked dreams that transform the game into a 2D platformer. Recover the Somnus Lens by solving each dreamer's personal mystery.
 
 ## Tech Stack
-Vanilla JavaScript ES modules, Three.js for the hub, Canvas 2D for dreams, Web Audio for playback and synthesized fallback sound, ElevenLabs for author-time narration/voice-over/effect generation, Vite, and Node's built-in test runner. No external art assets.
+Vanilla JavaScript ES modules, Three.js for the hub, Canvas 2D for dreams, Web Audio for playback and synthesized fallback sound, ElevenLabs for author-time narration/voice-over/effect/scene-music generation, Vite, and Node's built-in test runner. No external art assets.
 
 ## Commands
 - Develop: `npm run dev`

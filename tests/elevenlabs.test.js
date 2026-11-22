@@ -127,7 +127,7 @@ test('audio library generation writes local assets and reuses existing files', a
   }
 });
 
-test('generated audio manifest covers every Dream narration and effect asset', async () => {
+test('generated audio manifest covers every narration, effect, and scene music asset', async () => {
   assert.equal(Object.keys(GENERATED_AUDIO).length, AUDIO_ASSETS.length);
   for (const asset of AUDIO_ASSETS) {
     const path = GENERATED_AUDIO[asset.id];
@@ -155,4 +155,36 @@ test('voice configuration applies shared and Dreamer-specific overrides', () => 
     ilex: 'shared-voice',
     sera: 'shared-voice'
   });
+});
+
+test('ElevenLabs SDK instrumental generation sends the scene prompt and loop contract', async () => {
+  let request;
+  const audio = new Uint8Array([10, 11, 12]);
+  const client = {
+    textToSoundEffects: {
+      convert: async (options) => {
+        request = options;
+        return new Response(audio).body;
+      }
+    }
+  };
+
+  const result = await requestAudioAsset({
+    id: 'music-hub',
+    kind: 'music',
+    prompt: 'Ancient ruins exploration, instrumental seamless loop',
+    duration: 30
+  }, {
+    voiceIds: {},
+    client
+  });
+
+  assert.deepEqual(request, {
+    text: 'Ancient ruins exploration, instrumental seamless loop',
+    modelId: 'eleven_text_to_sound_v3',
+    durationSeconds: 30,
+    promptInfluence: 0.65,
+    loop: true
+  });
+  assert.deepEqual(result, audio);
 });

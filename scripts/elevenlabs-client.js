@@ -29,19 +29,22 @@ async function readAudioStream(audio) {
 
 export async function requestAudioAsset(asset, { voiceIds, client }) {
   const sdk = client || new ElevenLabsClient();
-  const audio = asset.kind === 'speech'
-    ? await sdk.textToSpeech.convert(voiceIds[asset.voice], {
+  let audio;
+  if (asset.kind === 'speech') {
+    audio = await sdk.textToSpeech.convert(voiceIds[asset.voice], {
       text: asset.text,
       modelId: 'eleven_v4',
       voiceSettings: { stability: 0.7, similarityBoost: 0.5 }
-    })
-    : await sdk.textToSoundEffects.convert({
+    });
+  } else {
+    audio = await sdk.textToSoundEffects.convert({
       text: asset.prompt,
       modelId: 'eleven_text_to_sound_v3',
       durationSeconds: asset.duration,
       promptInfluence: 0.65,
-      loop: false
+      loop: asset.kind === 'music'
     });
+  }
   return readAudioStream(audio);
 }
 

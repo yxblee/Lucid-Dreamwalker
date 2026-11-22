@@ -24,5 +24,11 @@ export const GENERATED_AUDIO = {
   "sfx-portal": "audio/sfx-portal.mp3",
   "sfx-level": "audio/sfx-level.mp3",
   "sfx-win": "audio/sfx-win.mp3",
-  "sfx-click": "audio/sfx-click.mp3"
+  "sfx-click": "audio/sfx-click.mp3",
+  "music-title": "audio/music-title.mp3",
+  "music-hub": "audio/music-hub.mp3",
+  "music-bellwright": "audio/music-bellwright.mp3",
+  "music-archivist": "audio/music-archivist.mp3",
+  "music-cartographer": "audio/music-cartographer.mp3",
+  "music-win": "audio/music-win.mp3"
 };
