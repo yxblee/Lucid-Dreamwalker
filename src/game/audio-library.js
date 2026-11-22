@@ -71,5 +71,18 @@ export const AUDIO_ASSETS = [
     kind: 'sound',
     prompt,
     duration
+  })),
+  ...Object.entries({
+    title: 'Wordless ethereal dark-fantasy ambient music, glass harp, soft analog pads, sparse bell tones, mysterious and suspended, slow gentle pulse, instrumental only, seamless loop with no final cadence, no spoken or sung vocals, no dramatic ending',
+    hub: 'Instrumental ancient-ruins exploration music, warm strings, airy pads, subtle frame drum pulse, quiet plucked motifs, curious and mysterious rather than threatening, steady restrained energy, seamless loop with no final cadence, no vocals, no dramatic ending',
+    bellwright: 'Instrumental dream platformer music led by resonant bronze bells, celesta and soft strings, gentle waltzlike motion, wistful but forward-moving, crystalline bell echoes, seamless loop with no final cadence, no vocals, no dramatic ending',
+    archivist: 'Instrumental time-bending dream music, soft plucked strings, muted piano, subtle reversed textures and clocklike rhythmic fragments, precise and introspective, restrained momentum, seamless loop with no final cadence, no ticking sound effects, no vocals, no dramatic ending',
+    cartographer: 'Instrumental shifting-world dream music, airy synthesizer arpeggios, modal strings and soft flowing percussion, gently changing harmonic paths, adventurous and luminous, seamless loop with no final cadence, no vocals, no dramatic ending',
+    win: 'Instrumental hopeful morning resolution music, warm pads, gentle strings, glass harp and soft bells, serene emotional release and quiet triumph, sustained warm harmony suitable for looping, no final cadence, no vocals, no dramatic ending'
+  }).map(([scene, prompt]) => ({
+    id: `music-${scene}`,
+    kind: 'music',
+    prompt,
+    duration: 30
   }))
 ];

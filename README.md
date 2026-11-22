@@ -2,7 +2,7 @@
 
 A finishable, single-player browser adventure RPG. Explore a rendered 3D ancient ruin, fight wisps, improve stats, and enter three linked dreams that transform the game into a 2D platformer. Recover the Somnus Lens by solving each dreamer's personal mystery.
 
-Built with vanilla JavaScript ES modules, Three.js (3D hub), Canvas 2D (dreams), and Web Audio. Narration, Dreamer voice-overs, and effects can be generated with ElevenLabs; synthesized effects keep the game playable without generated assets. Visuals remain procedural.
+Built with vanilla JavaScript ES modules, Three.js (3D hub), Canvas 2D (dreams), and Web Audio. Narration, Dreamer voice-overs, effects, and scene music can be generated with ElevenLabs; synthesized audio keeps the game playable without generated assets. Visuals remain procedural.
 
 ## Quickstart
 
@@ -25,7 +25,7 @@ Generation requires an ElevenLabs account and uses your plan's credits. After `n
 npm run audio:generate
 ```
 
-The official `@elevenlabs/elevenlabs-js` SDK uses `eleven_v4` for speech and `eleven_text_to_sound_v3` for effects. George is the default pre-made voice. Set `ELEVENLABS_VOICE_ID` to choose another shared voice, or configure `ELEVENLABS_NARRATOR_VOICE_ID`, `ELEVENLABS_MARA_VOICE_ID`, `ELEVENLABS_ILEX_VOICE_ID`, and `ELEVENLABS_SERA_VOICE_ID` for distinct performances. Role-specific IDs override the shared ID. The command generates opening/ending narration, Dreamer introductions and Clues, hub voice-overs, and all gameplay effects through the [speech](https://elevenlabs.io/docs/api-reference/text-to-speech/convert) and [sound-generation](https://elevenlabs.io/docs/api-reference/sound-generation) APIs. The command loads `.env.local` when present and otherwise uses existing environment variables.
+The official `@elevenlabs/elevenlabs-js` SDK uses `eleven_v4` for speech and `eleven_text_to_sound_v3` for effects and 30-second instrumental scene loops. Title, Hub, Dream, and win music loops crossfade with scene changes, with per-scene gains calibrated to measured track loudness; synthesized music remains the fallback. George is the default pre-made voice. Set `ELEVENLABS_VOICE_ID` to choose another shared voice, or configure `ELEVENLABS_NARRATOR_VOICE_ID`, `ELEVENLABS_MARA_VOICE_ID`, `ELEVENLABS_ILEX_VOICE_ID`, and `ELEVENLABS_SERA_VOICE_ID` for distinct performances. Role-specific IDs override the shared ID. The command generates opening/ending narration, Dreamer introductions and Clues, hub voice-overs, and all gameplay effects through the [speech](https://elevenlabs.io/docs/api-reference/text-to-speech/convert) and [sound-generation](https://elevenlabs.io/docs/api-reference/sound-generation) APIs. The command loads `.env.local` when present and otherwise uses existing environment variables.
 
 MP3s are written to `public/audio/` and the browser manifest to `src/game/generated-audio.js`. Existing MP3s are reused; delete only the files you intend to regenerate. Review every new batch for pronunciation, pacing, loudness, content, and your plan's usage rights before committing it. Environment files are ignored by Git; do not put credentials in source files or command output.
 

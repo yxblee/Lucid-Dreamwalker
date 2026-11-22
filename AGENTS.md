@@ -2,7 +2,7 @@
 
 ## Project
 
-Lucid (Dreamwalker): a single-player browser adventure RPG. 3D hub (Three.js) with combat and upgrades; three 2D platformer dreams (Canvas 2D). Web Audio provides playback and synthesized fallback, with optional ElevenLabs-generated narration, voice-overs, and effects. See `SPEC.md` for the V1 spec and `README.md` for the development workflow.
+Lucid (Dreamwalker): a single-player browser adventure RPG. 3D hub (Three.js) with combat and upgrades; three 2D platformer dreams (Canvas 2D). Web Audio provides playback and synthesized fallback, with optional ElevenLabs-generated narration, voice-overs, effects, and scene music. See `SPEC.md` for the V1 spec and `README.md` for the development workflow.
 
 Work is tracked as GitHub issues on `yxblee/Lucid-Dreamwalker` (use the `gh` CLI). Domain language lives in `GLOSSARY.md`; decisions live in `docs/adr/`. Use glossary terms in issue titles, test names, and proposals, and flag any output that contradicts an ADR.
 
