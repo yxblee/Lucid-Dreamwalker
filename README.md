@@ -19,13 +19,13 @@ npm run test:browser # scripted browser campaign (dev server must be running)
 
 The game uses local generated assets when present and synthesized effects otherwise. No API key is shipped to the browser, and gameplay never calls ElevenLabs.
 
-Generation requires an ElevenLabs account and uses your plan's credits. Set the API key and either one shared voice or separate role voices in the environment, then run:
+Generation requires an ElevenLabs account and uses your plan's credits. After `npx -y @elevenlabs/cli@latest onboard init`, generate with the key stored in `.env.local`:
 
 ```bash
-ELEVENLABS_API_KEY="your-key" ELEVENLABS_VOICE_ID="your-voice-id" npm run audio:generate
+npm run audio:generate
 ```
 
-For distinct performances, configure `ELEVENLABS_NARRATOR_VOICE_ID`, `ELEVENLABS_MARA_VOICE_ID`, `ELEVENLABS_ILEX_VOICE_ID`, and `ELEVENLABS_SERA_VOICE_ID`. Role-specific IDs override `ELEVENLABS_VOICE_ID`. The command generates opening/ending narration, Dreamer introductions and Clues, hub voice-overs, and all gameplay effects through the [speech](https://elevenlabs.io/docs/api-reference/text-to-speech/convert) and [sound-generation](https://elevenlabs.io/docs/api-reference/sound-generation) APIs.
+The official `@elevenlabs/elevenlabs-js` SDK uses `eleven_v4` for speech and `eleven_text_to_sound_v3` for effects. George is the default pre-made voice. Set `ELEVENLABS_VOICE_ID` to choose another shared voice, or configure `ELEVENLABS_NARRATOR_VOICE_ID`, `ELEVENLABS_MARA_VOICE_ID`, `ELEVENLABS_ILEX_VOICE_ID`, and `ELEVENLABS_SERA_VOICE_ID` for distinct performances. Role-specific IDs override the shared ID. The command generates opening/ending narration, Dreamer introductions and Clues, hub voice-overs, and all gameplay effects through the [speech](https://elevenlabs.io/docs/api-reference/text-to-speech/convert) and [sound-generation](https://elevenlabs.io/docs/api-reference/sound-generation) APIs. The command loads `.env.local` when present and otherwise uses existing environment variables.
 
 MP3s are written to `public/audio/` and the browser manifest to `src/game/generated-audio.js`. Existing MP3s are reused; delete only the files you intend to regenerate. Review every new batch for pronunciation, pacing, loudness, content, and your plan's usage rights before committing it. Environment files are ignored by Git; do not put credentials in source files or command output.
 

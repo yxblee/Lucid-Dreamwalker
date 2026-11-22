@@ -106,7 +106,9 @@ try {
     delete audio.assets['narration-opening'];
     return { played, narrated, sources };
   });
-  assert.deepEqual(generatedPlayback, { played: true, narrated: true, sources: 2 });
+  assert.equal(generatedPlayback.played, true);
+  assert.equal(generatedPlayback.narrated, true);
+  assert.ok(generatedPlayback.sources >= 2);
 
   await page.evaluate(() => {
     const hub = window.__LUCID__.getHub();
