@@ -93,6 +93,7 @@ function startNew() {
   previousLevel = 1;
   save();
   enterHub();
+  audio.narrate('narration-opening');
   notify('Find Mara’s dream beneath the cyan arch.');
 }
 
@@ -103,6 +104,7 @@ async function continueGame() {
 }
 
 function showTitle() {
+  audio.stopNarration();
   mode = 'title';
   paused = false;
   modalType = null;
@@ -130,6 +132,7 @@ function transition(action) {
 
 function enterHub() {
   if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+  audio.stopNarration();
   mode = 'hub';
   paused = false;
   modalType = null;
@@ -189,6 +192,7 @@ function enterDream(id) {
     $('#interaction-prompt').hidden = true;
     setScreen('#dream-intro');
     audio.setMode(id);
+    audio.narrate(`voice-${id}-intro`);
     updateObjective();
     updateAbilities();
     input.clear();
@@ -198,6 +202,7 @@ function enterDream(id) {
 function resume() {
   if (mode === 'title' || mode === 'win') return;
   if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+  audio.stopNarration();
   paused = false;
   modalType = null;
   setScreen(null);
@@ -242,10 +247,12 @@ function finishDream(id) {
     <div class="modal-actions"><button class="primary-button" data-action="hub"><span>Wake in the ruins</span><svg class="icon"><use href="#icon-arrow" /></svg></button></div>
   `, 'story');
   audio.sfx('memory');
+  audio.narrate(`clue-${id}`);
 }
 
 function showDefeat(reason) {
   if (mode !== 'hub' && mode !== 'dream') return;
+  audio.stopNarration();
   state.deaths += 1;
   save();
   paused = true;
@@ -275,6 +282,7 @@ function showWin() {
   $('#win-enemies').textContent = state.enemiesDefeated;
   audio.setMode('win');
   audio.sfx('win');
+  audio.narrate('narration-win');
   save();
   input.clear();
 }
@@ -356,15 +364,17 @@ function damageFlash() {
   flash.classList.add('flash');
 }
 
-function showDialogue(title, text) {
+function showDialogue(title, text, narration) {
   paused = true;
   modalType = 'dialogue';
   $('#dialogue-title').textContent = title;
   $('#dialogue-text').textContent = text;
   setScreen('#dialogue');
+  if (narration) audio.narrate(narration);
 }
 
 function openModal(content, type) {
+  audio.stopNarration();
   paused = true;
   modalType = type;
   $('#modal').innerHTML = content;
@@ -420,7 +430,7 @@ function showControls() {
     <p class="modal-deck">Controls for the ruins and the three dreams.</p>
     <div class="controls-grid">
       <div><span>Move</span><kbd>WASD / arrows</kbd></div><div><span>Interact</span><kbd>E</kbd></div>
-      <div><span>Jump / double jump</span><kbd>Space / W / ↑</kbd></div><div><span>Moonblade strike</span><kbd>J</kbd></div>
+      <div><span>Jump / double jump</span><kbd>W / ↑</kbd></div><div><span>Moonblade strike</span><kbd>Space</kbd></div>
       <div><span>Invert gravity</span><kbd>G</kbd></div><div><span>Slide</span><kbd>Shift</kbd></div>
       <div><span>Slow time</span><kbd>Hold Q</kbd></div><div><span>Rewind two seconds</span><kbd>R</kbd></div>
       <div><span>Fly</span><kbd>Hold F</kbd></div><div><span>Attune upgrades</span><kbd>U</kbd></div>
@@ -513,6 +523,7 @@ if (import.meta.env.DEV) {
     getDream: () => dream,
     getHub: () => hub,
     getInput: () => input,
+    getAudio: () => audio,
     enterDream: (id) => { state.unlocked = [...new Set([...state.unlocked, id])]; enterDream(id); },
     enterHub
   };

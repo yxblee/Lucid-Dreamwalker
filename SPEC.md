@@ -4,7 +4,7 @@
 A finishable, single-player browser adventure RPG. Explore a rendered 3D ancient ruin, fight wisps, improve stats, and enter three linked dreams that transform the game into a 2D platformer. Recover the Somnus Lens by solving each dreamer's personal mystery.
 
 ## Tech Stack
-Vanilla JavaScript ES modules, Three.js for the hub, Canvas 2D for dreams, Web Audio for original synthesized sound, Vite, and Node's built-in test runner. No external art or audio assets.
+Vanilla JavaScript ES modules, Three.js for the hub, Canvas 2D for dreams, Web Audio for playback and synthesized fallback sound, ElevenLabs for author-time narration/voice-over/effect generation, Vite, and Node's built-in test runner. No external art assets.
 
 ## Commands
 - Develop: `npm run dev`
@@ -33,8 +33,8 @@ Unit-test pure progression, unlock, upgrade, collision, and level-validity rules
 
 ## Boundaries
 - Always: keep the campaign completable, validate saved data, support keyboard and touch, and verify real gameplay.
-- Ask first: external services, licensed assets, or backend dependencies.
-- Never: collect personal data, commit secrets, or use third-party art/audio.
+- Ask first: new external services, licensed assets, or backend dependencies. Author-time ElevenLabs audio generation is the approved exception in ADR 0004.
+- Never: collect personal data, commit secrets, or use unapproved third-party art/audio.
 
 ## Success Criteria
 - Start, continue, pause, defeat/restart, and win screens work without reloads.
