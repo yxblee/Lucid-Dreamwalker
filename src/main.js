@@ -19,7 +19,8 @@ class Input {
     this.keys = new Set();
     this.pressed = new Set();
     window.addEventListener('keydown', (event) => {
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Tab'].includes(event.code)) event.preventDefault();
+      const gameplayTab = event.code === 'Tab' && (mode === 'hub' || mode === 'dream') && !paused;
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(event.code) || gameplayTab) event.preventDefault();
       if (!event.repeat) this.pressed.add(event.code);
       this.keys.add(event.code);
     });
@@ -87,7 +88,7 @@ function setScreen(id) {
 function updateContinue() {
   const saved = loadSave();
   $('#continue-button').hidden = !saved;
-  $('#continue-meta').textContent = saved ? `${saved.completed.length} of 3 dreams restored · Dream level ${saved.level}` : '';
+  $('#continue-meta').textContent = saved ? `${saved.completed.length} of ${DREAM_ORDER.length} dreams restored · Dream level ${saved.level}` : '';
 }
 
 function startNew() {
@@ -187,12 +188,11 @@ function enterDream(id) {
       onMessage: notify
     }, audio);
     const data = DREAMS[id];
-    const lawIcons = { bellwright: 'gravity', archivist: 'time', cartographer: 'fly' };
     $('#game').dataset.dream = id;
-    $('#intro-law-icon').setAttribute('href', `#icon-${lawIcons[id]}`);
+    $('#intro-law-icon').setAttribute('href', `#icon-${data.lawIcon}`);
     $('#location-kicker').textContent = data.dreamer;
     $('#location-name').textContent = data.name;
-    $('#intro-number').textContent = `Dream ${['I', 'II', 'III'][['bellwright', 'archivist', 'cartographer'].indexOf(id)]}`;
+    $('#intro-number').textContent = `Dream ${['I', 'II', 'III'][DREAM_ORDER.indexOf(id)]}`;
     $('#intro-dreamer').textContent = data.dreamer;
     $('#intro-name').textContent = data.name;
     $('#intro-subtitle').textContent = data.subtitle;
@@ -407,7 +407,13 @@ function openModal(content, type) {
   modalType = type;
   $('#modal').innerHTML = content;
   setScreen('#modal-overlay');
-  $('#modal .primary-button')?.focus({ preventScroll: true });
+  const primary = $('#modal .primary-button');
+  const modal = $('#modal');
+  if (primary && primary.getBoundingClientRect().bottom <= modal.getBoundingClientRect().bottom - 16) primary.focus({ preventScroll: true });
+  else {
+    modal.tabIndex = -1;
+    modal.focus({ preventScroll: true });
+  }
   input.clear();
 }
 

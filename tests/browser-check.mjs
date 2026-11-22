@@ -213,6 +213,11 @@ try {
   await page.click('#modal [data-action="resume"]');
 
   await page.keyboard.press('Escape');
+  assert.equal(await page.evaluate(() => document.activeElement.dataset.action), 'resume');
+  await page.keyboard.press('Tab');
+  assert.equal(await page.evaluate(() => document.activeElement.dataset.action), 'retry');
+  await page.keyboard.press('Tab');
+  assert.equal(await page.evaluate(() => document.activeElement.dataset.action), 'controls');
   await page.click('#modal [data-action="title"]');
   await waitFor(() => window.__LUCID__.getMode() === 'title');
   assert.match(await page.locator('#continue-meta').textContent(), /1 of 3 dreams restored · Dream level 1/);
@@ -249,6 +254,7 @@ try {
 
   await page.evaluate(() => window.__LUCID__.enterDream('cartographer'));
   await crossThreshold('cartographer');
+  assert.equal(await page.evaluate(() => window.__LUCID__.getDream().level.palette[2]), '#f2b1a5');
   await page.keyboard.down('KeyF');
   await waitFor(() => window.__LUCID__.getDream().player.vy < 0);
   await page.keyboard.up('KeyF');
