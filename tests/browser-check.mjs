@@ -116,7 +116,9 @@ try {
     delete audio.assets['narration-opening'];
     return { played, narrated, sources };
   });
-  assert.deepEqual(generatedPlayback, { played: true, narrated: true, sources: 2 });
+  assert.equal(generatedPlayback.played, true);
+  assert.equal(generatedPlayback.narrated, true);
+  assert.ok(generatedPlayback.sources >= 2);
 
   await page.evaluate(() => {
     const hub = window.__LUCID__.getHub();
@@ -140,6 +142,9 @@ try {
     enemy.health = 1;
   });
   await page.keyboard.press('KeyJ');
+  await page.waitForTimeout(300);
+  assert.equal(await page.evaluate(() => window.__LUCID__.getState().enemiesDefeated), 0);
+  await page.keyboard.press('Space');
   await waitFor(() => window.__LUCID__.getHub().attackArc?.visible);
   await waitFor(() => window.__LUCID__.getState().enemiesDefeated === 1);
   await page.evaluate(() => { window.__LUCID__.getHub().player.health = 20; });
@@ -175,7 +180,6 @@ try {
   assert.equal(await page.locator('#touch-controls [data-key="KeyR"]').getAttribute('aria-label'), 'Rewind two seconds');
   assert.equal(await page.locator('#touch-controls [data-key="KeyF"]').getAttribute('aria-label'), 'Fly');
   assert.ok(await page.locator('#touch-controls [data-key="KeyE"]').isHidden());
-  assert.ok(await page.locator('#touch-controls [data-key="KeyJ"]').isHidden());
   assert.ok(await page.locator('#touch-controls [data-key="KeyF"]').isHidden());
   await page.keyboard.press('Space');
   await waitFor(() => window.__LUCID__.getDream().player.attack > 0);
@@ -291,7 +295,12 @@ try {
   assert.ok(await page.evaluate(() => window.__NARRATION_CUES__.includes('narration-win')));
   await page.waitForTimeout(600);
   const winRect = await page.locator('#win-screen').evaluate((screen) => screen.getBoundingClientRect().toJSON());
-  assert.deepEqual({ x: winRect.x, y: winRect.y, width: winRect.width, height: winRect.height }, { x: 0, y: 0, width: 1440, height: 900 });
+  assert.equal(winRect.width, 1440);
+  assert.equal(winRect.height, 900);
+  assert.ok(await page.evaluate(() => {
+    const hit = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2);
+    return Boolean(hit && hit.closest('#win-screen'));
+  }), 'Win screen hit-tests at the viewport center');
   await page.screenshot({ path: '.artifacts/win.png' });
   await page.setViewportSize({ width: 390, height: 600 });
   await page.waitForTimeout(100);

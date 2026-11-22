@@ -361,7 +361,7 @@ function updateAbilities() {
     slot.classList.toggle('context-hidden', mode === 'hub' && ability !== 'attack');
   });
   const touchVisibility = {
-    KeyE: mode === 'hub', KeyJ: mode === 'hub', KeyG: mode === 'dream',
+    KeyE: mode === 'hub', KeyG: mode === 'dream',
     ShiftLeft: mode === 'dream' && state.abilities.slide,
     KeyQ: mode === 'dream' && state.abilities.time,
     KeyR: mode === 'dream' && state.abilities.time,

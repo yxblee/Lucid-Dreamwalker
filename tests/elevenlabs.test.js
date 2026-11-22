@@ -1,16 +1,22 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { access, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { generateAudioLibrary, requestAudioAsset } from '../scripts/elevenlabs-client.js';
+import { generateAudioLibrary, requestAudioAsset, resolveVoiceIds } from '../scripts/elevenlabs-client.js';
+import { AUDIO_ASSETS } from '../src/game/audio-library.js';
+import { GENERATED_AUDIO } from '../src/game/generated-audio.js';
 
-test('ElevenLabs speech generation authenticates and sends the narration contract', async () => {
+test('ElevenLabs SDK speech generation sends the narration contract', async () => {
   let request;
   const audio = new Uint8Array([1, 2, 3]);
-  const fetchImpl = async (url, options) => {
-    request = { url, options };
-    return new Response(audio, { status: 200, headers: { 'Content-Type': 'audio/mpeg' } });
+  const client = {
+    textToSpeech: {
+      convert: async (voiceId, options) => {
+        request = { voiceId, options };
+        return new Response(audio).body;
+      }
+    }
   };
 
   const result = await requestAudioAsset({
@@ -19,28 +25,29 @@ test('ElevenLabs speech generation authenticates and sends the narration contrac
     voice: 'narrator',
     text: 'Every dream is a door.'
   }, {
-    apiKey: 'test-key',
     voiceIds: { narrator: 'voice-narrator' },
-    fetchImpl
+    client
   });
 
-  assert.equal(request.url, 'https://api.elevenlabs.io/v1/text-to-speech/voice-narrator?output_format=mp3_44100_128');
-  assert.equal(request.options.method, 'POST');
-  assert.equal(request.options.headers['xi-api-key'], 'test-key');
-  assert.equal(request.options.headers.Accept, 'audio/mpeg');
-  assert.deepEqual(JSON.parse(request.options.body), {
+  assert.equal(request.voiceId, 'voice-narrator');
+  assert.deepEqual(request.options, {
     text: 'Every dream is a door.',
-    model_id: 'eleven_multilingual_v2'
+    modelId: 'eleven_v4',
+    voiceSettings: { stability: 0.7, similarityBoost: 0.5 }
   });
   assert.deepEqual(result, audio);
 });
 
-test('ElevenLabs sound generation sends the effect prompt and duration', async () => {
+test('ElevenLabs SDK sound generation sends the effect prompt and duration', async () => {
   let request;
   const audio = new Uint8Array([4, 5, 6]);
-  const fetchImpl = async (url, options) => {
-    request = { url, options };
-    return new Response(audio, { status: 200, headers: { 'Content-Type': 'audio/mpeg' } });
+  const client = {
+    textToSoundEffects: {
+      convert: async (options) => {
+        request = options;
+        return new Response(audio).body;
+      }
+    }
   };
 
   const result = await requestAudioAsset({
@@ -49,27 +56,26 @@ test('ElevenLabs sound generation sends the effect prompt and duration', async (
     prompt: 'A soft ethereal platformer jump, short and non-musical',
     duration: 0.5
   }, {
-    apiKey: 'test-key',
     voiceIds: {},
-    fetchImpl
+    client
   });
 
-  assert.equal(request.url, 'https://api.elevenlabs.io/v1/sound-generation?output_format=mp3_44100_128');
-  assert.equal(request.options.headers['xi-api-key'], 'test-key');
-  assert.deepEqual(JSON.parse(request.options.body), {
+  assert.deepEqual(request, {
     text: 'A soft ethereal platformer jump, short and non-musical',
-    duration_seconds: 0.5,
-    prompt_influence: 0.65,
+    modelId: 'eleven_text_to_sound_v3',
+    durationSeconds: 0.5,
+    promptInfluence: 0.65,
     loop: false
   });
   assert.deepEqual(result, audio);
 });
 
-test('ElevenLabs generation reports API errors without exposing the key', async () => {
-  const fetchImpl = async () => new Response(JSON.stringify({ detail: { message: 'Invalid API key' } }), {
-    status: 401,
-    headers: { 'Content-Type': 'application/json' }
-  });
+test('ElevenLabs SDK generation propagates API errors', async () => {
+  const client = {
+    textToSpeech: {
+      convert: async () => { throw new Error('401: Invalid API key'); }
+    }
+  };
 
   await assert.rejects(requestAudioAsset({
     id: 'narration-opening',
@@ -77,13 +83,11 @@ test('ElevenLabs generation reports API errors without exposing the key', async 
     voice: 'narrator',
     text: 'Every dream is a door.'
   }, {
-    apiKey: 'secret-test-key',
     voiceIds: { narrator: 'voice-narrator' },
-    fetchImpl
+    client
   }), (error) => {
     assert.match(error.message, /401/);
     assert.match(error.message, /Invalid API key/);
-    assert.doesNotMatch(error.message, /secret-test-key/);
     return true;
   });
 });
@@ -93,9 +97,13 @@ test('audio library generation writes local assets and reuses existing files', a
   const outputDir = join(directory, 'audio');
   const manifestPath = join(directory, 'generated-audio.js');
   let requests = 0;
-  const fetchImpl = async () => {
-    requests += 1;
-    return new Response(new Uint8Array([7, 8, 9]), { status: 200 });
+  const client = {
+    textToSoundEffects: {
+      convert: async () => {
+        requests += 1;
+        return new Response(new Uint8Array([7, 8, 9])).body;
+      }
+    }
   };
   const assets = [{
     id: 'sfx-jump',
@@ -103,7 +111,7 @@ test('audio library generation writes local assets and reuses existing files', a
     prompt: 'A soft ethereal jump',
     duration: 0.5
   }];
-  const options = { apiKey: 'test-key', voiceIds: {}, fetchImpl, outputDir, manifestPath };
+  const options = { voiceIds: {}, client, outputDir, manifestPath };
 
   try {
     const manifest = await generateAudioLibrary(assets, options);
@@ -117,4 +125,34 @@ test('audio library generation writes local assets and reuses existing files', a
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
+});
+
+test('generated audio manifest covers every Dream narration and effect asset', async () => {
+  assert.equal(Object.keys(GENERATED_AUDIO).length, AUDIO_ASSETS.length);
+  for (const asset of AUDIO_ASSETS) {
+    const path = GENERATED_AUDIO[asset.id];
+    assert.ok(path, `Missing manifest entry for ${asset.id}`);
+    await access(new URL(`../public/${path}`, import.meta.url));
+  }
+});
+
+test('voice configuration uses George for every narration role by default', () => {
+  assert.deepEqual(resolveVoiceIds({}), {
+    narrator: 'JBFqnCBsd6RMkjVDRZzb',
+    mara: 'JBFqnCBsd6RMkjVDRZzb',
+    ilex: 'JBFqnCBsd6RMkjVDRZzb',
+    sera: 'JBFqnCBsd6RMkjVDRZzb'
+  });
+});
+
+test('voice configuration applies shared and Dreamer-specific overrides', () => {
+  assert.deepEqual(resolveVoiceIds({
+    ELEVENLABS_VOICE_ID: 'shared-voice',
+    ELEVENLABS_MARA_VOICE_ID: 'mara-voice'
+  }), {
+    narrator: 'shared-voice',
+    mara: 'mara-voice',
+    ilex: 'shared-voice',
+    sera: 'shared-voice'
+  });
 });

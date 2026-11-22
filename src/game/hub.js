@@ -553,7 +553,7 @@ export class RuinHub {
       } else {
         this.character.position.y = Math.sin(this.time * 2.5) * 0.025;
       }
-      if ((input.consume('KeyJ') || input.consume('Space')) && this.attackCooldown <= 0) this.attack(state);
+      if (input.consume('Space') && this.attackCooldown <= 0) this.attack(state);
       this.updateEnemies(dt, state);
       this.updateInteraction(input, state);
       this.character.position.x = this.player.x;
