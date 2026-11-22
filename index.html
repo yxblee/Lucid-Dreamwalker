@@ -45,7 +45,7 @@
           <p class="title-deck">Every dream is a door.<br />Every memory, a piece of the truth.</p>
           <div class="title-actions">
             <button class="primary-button" data-action="new"><span>Begin the descent</span><svg class="icon"><use href="#icon-arrow" /></svg></button>
-            <button id="continue-button" class="text-button" data-action="continue" hidden>Continue your journey <svg class="icon"><use href="#icon-arrow" /></svg></button>
+            <button id="continue-button" class="text-button continue-button" data-action="continue" hidden><span class="continue-copy"><span>Continue your journey</span><small id="continue-meta"></small></span><svg class="icon"><use href="#icon-arrow" /></svg></button>
           </div>
           <button class="sound-button" data-action="mute" aria-label="Toggle sound"><svg class="icon"><use href="#icon-sound" /></svg><span>Sound <span class="mute-label">on</span></span></button>
           <div class="title-note"><span>Three connected dreams</span><i></i><span>One shared truth</span></div>
@@ -127,7 +127,7 @@
           <p id="intro-dreamer">Mara, the bellwright</p>
           <h2 id="intro-name">The Unstrung Bell</h2>
           <blockquote id="intro-subtitle">A song remembers its ending.</blockquote>
-          <div class="intro-rule"><span>Dream law</span><p id="intro-rule"></p></div>
+          <div class="intro-rule"><span><svg class="icon"><use id="intro-law-icon" href="#icon-gravity" /></svg>Dream law</span><p id="intro-rule"></p></div>
           <button class="primary-button" data-action="resume"><span>Cross the threshold</span><svg class="icon"><use href="#icon-arrow" /></svg></button>
         </div>
       </section>
@@ -178,10 +178,10 @@
           <button data-key="ArrowRight" aria-label="Move right">→</button>
         </div>
         <div class="touch-actions">
-          <button data-key="KeyE">E</button>
-          <button data-key="Space">Strike</button><button data-key="KeyG">G</button>
-          <button data-key="ShiftLeft">Slide</button><button data-key="KeyQ">Q</button>
-          <button data-key="KeyR">R</button><button data-key="KeyF">F</button>
+          <button data-key="KeyE" aria-label="Interact">E</button>
+          <button data-key="Space" aria-label="Moonblade strike">Strike</button><button data-key="KeyG" aria-label="Invert gravity">G</button>
+          <button data-key="ShiftLeft" aria-label="Slide">Slide</button><button data-key="KeyQ" aria-label="Slow time">Q</button>
+          <button data-key="KeyR" aria-label="Rewind two seconds">R</button><button data-key="KeyF" aria-label="Fly">F</button>
         </div>
       </div>
       <div id="fade" aria-hidden="true"></div>

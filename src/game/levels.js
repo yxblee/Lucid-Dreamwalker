@@ -1,17 +1,17 @@
 export const DREAMS = {
   bellwright: {
-    name: 'The Unstrung Bell', dreamer: 'Mara, the bellwright', subtitle: 'A song remembers its ending.',
+    name: 'The Unstrung Bell', dreamer: 'Mara, the bellwright', subtitle: 'A song remembers its ending.', lawIcon: 'gravity',
     palette: ['#071d2a', '#123f4c', '#72f1d1', '#f3cf7a'], timeLimit: 150,
     rule: 'Invert gravity. Ring the three memories, then reach the waking gate.'
   },
   archivist: {
-    name: 'The Stolen Minute', dreamer: 'Ilex, the archivist', subtitle: 'Even a lost moment leaves an echo.',
+    name: 'The Stolen Minute', dreamer: 'Ilex, the archivist', subtitle: 'Even a lost moment leaves an echo.', lawIcon: 'time',
     palette: ['#160e2c', '#39245b', '#b8a0ff', '#ffca7a'], timeLimit: 135,
     rule: 'Bend time, slip beneath the seals, and recover the three stolen minutes.'
   },
   cartographer: {
-    name: 'The World Unmade', dreamer: 'Sera, the cartographer', subtitle: 'Every path was drawn to protect you.',
-    palette: ['#100f24', '#253557', '#7ee8fa', '#ff8d89'], timeLimit: 150,
+    name: 'The World Unmade', dreamer: 'Sera, the cartographer', subtitle: 'Every path was drawn to protect you.', lawIcon: 'fly',
+    palette: ['#100f24', '#253557', '#f2b1a5', '#ff8d89'], timeLimit: 150,
     rule: 'Combine every gift. Unmake the barriers and find the Somnus Lens.'
   }
 };

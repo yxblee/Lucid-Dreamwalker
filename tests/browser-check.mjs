@@ -22,6 +22,11 @@ async function waitFor(fn, arg = null) {
 async function crossThreshold(id) {
   await waitFor(() => window.__LUCID__.getMode() === 'dream' && !document.querySelector('#dream-intro').hidden);
   assert.ok(await page.evaluate((dreamId) => window.__NARRATION_CUES__.includes(`voice-${dreamId}-intro`), id));
+  assert.equal(await page.locator('#game').getAttribute('data-dream'), id);
+  assert.equal(await page.evaluate(() => document.activeElement.dataset.action), 'resume');
+  assert.ok(await page.locator('#toast').isHidden());
+  await page.waitForTimeout(650);
+  await page.screenshot({ path: `.artifacts/intro-${id}.png` });
   await page.click('#dream-intro [data-action="resume"]', { force: true });
   await waitFor(() => !window.__LUCID__.getPaused());
 }
@@ -51,6 +56,11 @@ try {
   await page.goto(BASE_URL, { waitUntil: 'networkidle' });
   await page.waitForTimeout(800);
   assert.equal(await page.title(), 'LUCID — Dreamwalker');
+  assert.equal(await page.locator('.sound-button').getAttribute('aria-pressed'), 'false');
+  await page.click('.sound-button');
+  assert.equal(await page.locator('.sound-button').getAttribute('aria-pressed'), 'true');
+  await page.click('.sound-button');
+  assert.equal(await page.locator('.sound-button').getAttribute('aria-pressed'), 'false');
   await page.screenshot({ path: '.artifacts/title.png' });
   await page.evaluate(() => {
     const audio = window.__LUCID__.getAudio();
@@ -135,7 +145,13 @@ try {
   await page.waitForTimeout(300);
   assert.equal(await page.evaluate(() => window.__LUCID__.getState().enemiesDefeated), 0);
   await page.keyboard.press('Space');
+  await waitFor(() => window.__LUCID__.getHub().attackArc?.visible);
   await waitFor(() => window.__LUCID__.getState().enemiesDefeated === 1);
+  await page.evaluate(() => { window.__LUCID__.getHub().player.health = 20; });
+  await waitFor(() => document.querySelector('.vitals').classList.contains('critical'));
+  await page.screenshot({ path: '.artifacts/hub-critical.png' });
+  await page.evaluate(() => { window.__LUCID__.getHub().player.health = 100; });
+  await waitFor(() => !document.querySelector('.vitals').classList.contains('critical'));
   await page.screenshot({ path: '.artifacts/hub.png' });
 
   await page.evaluate(() => {
@@ -158,6 +174,13 @@ try {
   await page.evaluate(() => window.__LUCID__.enterDream('bellwright'));
   await crossThreshold('bellwright');
   assert.equal(await page.locator('#touch-controls [data-key="Space"]').textContent(), 'Strike');
+  assert.equal(await page.locator('#touch-controls [data-key="KeyE"]').getAttribute('aria-label'), 'Interact');
+  assert.equal(await page.locator('#touch-controls [data-key="KeyG"]').getAttribute('aria-label'), 'Invert gravity');
+  assert.equal(await page.locator('#touch-controls [data-key="KeyQ"]').getAttribute('aria-label'), 'Slow time');
+  assert.equal(await page.locator('#touch-controls [data-key="KeyR"]').getAttribute('aria-label'), 'Rewind two seconds');
+  assert.equal(await page.locator('#touch-controls [data-key="KeyF"]').getAttribute('aria-label'), 'Fly');
+  assert.ok(await page.locator('#touch-controls [data-key="KeyE"]').isHidden());
+  assert.ok(await page.locator('#touch-controls [data-key="KeyF"]').isHidden());
   await page.keyboard.press('Space');
   await waitFor(() => window.__LUCID__.getDream().player.attack > 0);
   await page.waitForTimeout(300);
@@ -181,10 +204,29 @@ try {
   await crossThreshold('bellwright');
   await collectAndFinish('bellwright');
   assert.equal(await page.evaluate(() => window.__LUCID__.getState().abilities.doubleJump), true);
+  await page.keyboard.press('Tab');
+  await waitFor(() => document.querySelector('#modal-title')?.textContent === 'The dream atlas');
+  assert.equal(await page.locator('.atlas-node').count(), 3);
+  assert.equal(await page.locator('.atlas-node[data-state="restored"]').count(), 1);
+  assert.equal(await page.locator('.atlas-node[data-state="available"]').count(), 1);
+  assert.equal(await page.locator('.atlas-node[data-state="sealed"]').count(), 1);
+  assert.equal(await page.evaluate(() => document.activeElement.dataset.action), 'resume');
+  assert.ok(await page.locator('#toast').isHidden());
+  await page.waitForTimeout(650);
+  await page.screenshot({ path: '.artifacts/journal.png' });
+  await page.click('#modal [data-action="resume"]');
 
   await page.keyboard.press('Escape');
+  assert.equal(await page.evaluate(() => document.activeElement.dataset.action), 'resume');
+  await page.keyboard.press('Tab');
+  assert.equal(await page.evaluate(() => document.activeElement.dataset.action), 'retry');
+  await page.keyboard.press('Tab');
+  assert.equal(await page.evaluate(() => document.activeElement.dataset.action), 'controls');
   await page.click('#modal [data-action="title"]');
   await waitFor(() => window.__LUCID__.getMode() === 'title');
+  assert.match(await page.locator('#continue-meta').textContent(), /1 of 3 dreams restored · Dream level 1/);
+  await page.waitForTimeout(650);
+  await page.screenshot({ path: '.artifacts/title-continue.png' });
   await page.click('[data-action="continue"]');
   await waitFor(() => window.__LUCID__.getMode() === 'hub');
   assert.ok(await page.evaluate(() => window.__LUCID__.getState().completed.includes('bellwright')));
@@ -216,6 +258,7 @@ try {
 
   await page.evaluate(() => window.__LUCID__.enterDream('cartographer'));
   await crossThreshold('cartographer');
+  assert.equal(await page.evaluate(() => window.__LUCID__.getDream().level.palette[2]), '#f2b1a5');
   await page.keyboard.down('KeyF');
   await waitFor(() => window.__LUCID__.getDream().player.vy < 0);
   await page.keyboard.up('KeyF');

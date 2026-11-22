@@ -7,6 +7,7 @@ const PORTALS = [
   { id: 'archivist', x: 0, z: -16, color: 0xb59aff, name: 'The Stolen Minute' },
   { id: 'cartographer', x: 13, z: -6, color: 0xff9b91, name: 'The World Unmade' }
 ];
+const ATTACK_EFFECT_DURATION = 0.24;
 
 function stoneTexture() {
   const canvas = document.createElement('canvas');
@@ -85,6 +86,7 @@ export class RuinHub {
     this.active = false;
     this.time = 0;
     this.attackCooldown = 0;
+    this.attackEffectRemaining = 0;
     this.damageCooldown = 0;
     this.player = { x: 0, z: 10, health: 100, angle: Math.PI };
     this.obstacles = [];
@@ -237,6 +239,12 @@ export class RuinHub {
 
     for (const portal of PORTALS) this.buildPortal(portal, stone, darkStone);
     this.buildCharacter();
+    this.attackArc = new THREE.Mesh(
+      new THREE.TorusGeometry(1.35, 0.035, 6, 56, Math.PI * 1.35),
+      new THREE.MeshBasicMaterial({ color: 0xf3d58d, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false })
+    );
+    this.attackArc.visible = false;
+    scene.add(this.attackArc);
     this.buildEnemies();
     this.buildParticles();
     this.buildSky();
@@ -573,6 +581,14 @@ export class RuinHub {
       segment.rotation.y = Math.sin(this.time * 3 - index * 0.7) * (0.13 + index * 0.05);
       segment.rotation.x = -0.12 - index * 0.08 + Math.sin(this.time * 4 - index) * 0.06;
     });
+    if (this.attackEffectRemaining > 0) {
+      this.attackEffectRemaining = Math.max(0, this.attackEffectRemaining - dt);
+      const progress = 1 - this.attackEffectRemaining / ATTACK_EFFECT_DURATION;
+      this.attackArc.visible = this.attackEffectRemaining > 0;
+      this.attackArc.material.opacity = (1 - progress) * 0.9;
+      this.attackArc.scale.setScalar(0.82 + progress * 0.42);
+      this.attackArc.rotation.z += dt * 4.5;
+    } else this.attackArc.visible = false;
     this.particles.rotation.y += dt * 0.012;
     const positions = this.particles.geometry.attributes.position;
     for (let i = 0; i < positions.count; i++) {
@@ -610,7 +626,13 @@ export class RuinHub {
 
   attack(state) {
     this.attackCooldown = 0.42;
+    this.attackEffectRemaining = ATTACK_EFFECT_DURATION;
     this.sword.rotation.z = -2.4;
+    this.attackArc.visible = true;
+    this.attackArc.position.set(this.player.x, 1.05, this.player.z);
+    this.attackArc.rotation.set(0.2, this.player.angle, -0.8);
+    this.attackArc.material.opacity = 0.9;
+    this.attackArc.scale.setScalar(0.82);
     this.audio.sfx('attack');
     let hit = false;
     for (const enemy of this.enemies) {

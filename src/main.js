@@ -9,7 +9,7 @@ import { RuinHub } from './game/hub.js';
 import { DreamPlatformer } from './game/platformer.js';
 import { DreamAudio } from './game/audio.js';
 import { DREAMS } from './game/levels.js';
-import { SAVE_KEY, UPGRADES, createNewGame, addExperience, purchaseUpgrade, completeDream, getStats, validateSave, CLUES } from './game/progression.js';
+import { SAVE_KEY, UPGRADES, DREAM_ORDER, createNewGame, addExperience, purchaseUpgrade, completeDream, getStats, validateSave, CLUES } from './game/progression.js';
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -19,7 +19,8 @@ class Input {
     this.keys = new Set();
     this.pressed = new Set();
     window.addEventListener('keydown', (event) => {
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Tab'].includes(event.code)) event.preventDefault();
+      const gameplayTab = event.code === 'Tab' && (mode === 'hub' || mode === 'dream') && !paused;
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(event.code) || gameplayTab) event.preventDefault();
       if (!event.repeat) this.pressed.add(event.code);
       this.keys.add(event.code);
     });
@@ -85,7 +86,9 @@ function setScreen(id) {
 }
 
 function updateContinue() {
-  $('#continue-button').hidden = !loadSave();
+  const saved = loadSave();
+  $('#continue-button').hidden = !saved;
+  $('#continue-meta').textContent = saved ? `${saved.completed.length} of ${DREAM_ORDER.length} dreams restored · Dream level ${saved.level}` : '';
 }
 
 function startNew() {
@@ -104,12 +107,14 @@ async function continueGame() {
 }
 
 function showTitle() {
+  clearNotification();
   audio.stopNarration();
   mode = 'title';
   paused = false;
   modalType = null;
   dream = null;
   currentDream = null;
+  $('#game').removeAttribute('data-dream');
   hub.setTitle();
   $('#world-canvas').hidden = false;
   $('#dream-canvas').hidden = true;
@@ -138,6 +143,7 @@ function enterHub() {
   modalType = null;
   dream = null;
   currentDream = null;
+  $('#game').removeAttribute('data-dream');
   $('#world-canvas').hidden = false;
   $('#dream-canvas').hidden = true;
   $('#game-ui').hidden = false;
@@ -158,6 +164,7 @@ function enterHub() {
 
 function enterDream(id) {
   if (!state.unlocked.includes(id)) return;
+  clearNotification();
   if (id === 'archivist' && !state.abilities.time) {
     state = { ...state, abilities: { ...state.abilities, time: true } };
     save();
@@ -181,9 +188,11 @@ function enterDream(id) {
       onMessage: notify
     }, audio);
     const data = DREAMS[id];
+    $('#game').dataset.dream = id;
+    $('#intro-law-icon').setAttribute('href', `#icon-${data.lawIcon}`);
     $('#location-kicker').textContent = data.dreamer;
     $('#location-name').textContent = data.name;
-    $('#intro-number').textContent = `Dream ${['I', 'II', 'III'][['bellwright', 'archivist', 'cartographer'].indexOf(id)]}`;
+    $('#intro-number').textContent = `Dream ${['I', 'II', 'III'][DREAM_ORDER.indexOf(id)]}`;
     $('#intro-dreamer').textContent = data.dreamer;
     $('#intro-name').textContent = data.name;
     $('#intro-subtitle').textContent = data.subtitle;
@@ -191,6 +200,7 @@ function enterDream(id) {
     $('#dream-progress').hidden = false;
     $('#interaction-prompt').hidden = true;
     setScreen('#dream-intro');
+    $('#dream-intro [data-action="resume"]').focus({ preventScroll: true });
     audio.setMode(id);
     audio.narrate(`voice-${id}-intro`);
     updateObjective();
@@ -259,6 +269,7 @@ function showDefeat(reason) {
   modalType = 'defeat';
   $('#defeat-reason').textContent = reason;
   setScreen('#gameover-screen');
+  $('#gameover-screen [data-action="retry"]').focus({ preventScroll: true });
   input.clear();
 }
 
@@ -274,6 +285,7 @@ function showWin() {
   $('#dream-canvas').hidden = true;
   hub.setTitle();
   setScreen('#win-screen');
+  $('#win-screen [data-action="new"]').focus({ preventScroll: true });
   const minutes = Math.floor(state.playTime / 60);
   const seconds = Math.floor(state.playTime % 60).toString().padStart(2, '0');
   $('#win-time').textContent = `${minutes}:${seconds}`;
@@ -311,6 +323,7 @@ function updateResources() {
 
 function updateVitals(data) {
   runtimeHud = data;
+  $('.vitals').classList.toggle('critical', data.health / data.maxHealth <= 0.3);
   $('#health-fill').style.width = `${Math.max(0, data.health / data.maxHealth * 100)}%`;
   $('#health-text').textContent = `${Math.ceil(Math.max(0, data.health))} / ${data.maxHealth}`;
   $('#focus-fill').style.width = `${data.focus / data.maxFocus * 100}%`;
@@ -347,6 +360,19 @@ function updateAbilities() {
     slot.classList.toggle('locked', !unlocked);
     slot.classList.toggle('context-hidden', mode === 'hub' && ability !== 'attack');
   });
+  const touchVisibility = {
+    KeyE: mode === 'hub', KeyG: mode === 'dream',
+    ShiftLeft: mode === 'dream' && state.abilities.slide,
+    KeyQ: mode === 'dream' && state.abilities.time,
+    KeyR: mode === 'dream' && state.abilities.time,
+    KeyF: mode === 'dream' && state.abilities.fly
+  };
+  Object.entries(touchVisibility).forEach(([code, visible]) => { $(`#touch-controls [data-key="${code}"]`).hidden = !visible; });
+}
+
+function clearNotification() {
+  clearTimeout(toastTimer);
+  $('#toast').hidden = true;
 }
 
 function notify(message) {
@@ -370,15 +396,24 @@ function showDialogue(title, text, narration) {
   $('#dialogue-title').textContent = title;
   $('#dialogue-text').textContent = text;
   setScreen('#dialogue');
+  $('#dialogue [data-action="resume"]').focus({ preventScroll: true });
   if (narration) audio.narrate(narration);
 }
 
 function openModal(content, type) {
+  clearNotification();
   audio.stopNarration();
   paused = true;
   modalType = type;
   $('#modal').innerHTML = content;
   setScreen('#modal-overlay');
+  const primary = $('#modal .primary-button');
+  const modal = $('#modal');
+  if (primary && primary.getBoundingClientRect().bottom <= modal.getBoundingClientRect().bottom - 16) primary.focus({ preventScroll: true });
+  else {
+    modal.tabIndex = -1;
+    modal.focus({ preventScroll: true });
+  }
   input.clear();
 }
 
@@ -413,13 +448,18 @@ function showUpgrades() {
 }
 
 function showJournal() {
+  const atlas = DREAM_ORDER.map((id) => {
+    const status = state.completed.includes(id) ? 'restored' : state.unlocked.includes(id) ? 'available' : 'sealed';
+    return `<article class="atlas-node" data-state="${status}"><span class="atlas-marker" aria-hidden="true"><i></i></span><div><h3>${DREAMS[id].name}</h3><p>${DREAMS[id].dreamer}</p></div><small>${status}</small></article>`;
+  }).join('');
   const entries = state.clues.length ? state.clues.map((clue, index) => {
-    const id = ['bellwright', 'archivist', 'cartographer'][index];
+    const id = DREAM_ORDER[index];
     return `<article class="journal-entry"><h3>${DREAMS[id].dreamer}</h3><p>${clue}</p></article>`;
   }).join('') : '<div class="journal-empty">No memories have answered you yet.<br />Enter the cyan arch and listen to the bellwright.</div>';
   openModal(`
     <h2 id="modal-title">The dream atlas</h2>
     <p class="modal-deck">Interconnected memories · ${state.completed.length} of 3 dreams restored ${state.artifact ? '· Somnus Lens recovered' : ''}</p>
+    <div class="atlas-path">${atlas}</div>
     ${entries}<div class="modal-actions"><button class="primary-button" data-action="resume"><span>Close journal</span><svg class="icon"><use href="#icon-arrow" /></svg></button></div>
   `, 'journal');
 }
@@ -460,6 +500,10 @@ function handleAction(action) {
 
 function updateMuteLabels() {
   $$('.mute-label').forEach((label) => { label.textContent = label.closest('.topbar') ? (audio.muted ? 'Sound off' : 'Sound on') : (audio.muted ? 'off' : 'on'); });
+  $$('[data-action="mute"]').forEach((button) => {
+    button.setAttribute('aria-pressed', String(audio.muted));
+    button.classList.toggle('muted', audio.muted);
+  });
 }
 
 document.addEventListener('click', (event) => {
