@@ -437,30 +437,146 @@ export class DreamPlatformer {
     const colors = this.level.palette;
     const gradient = ctx.createLinearGradient(0, 0, 0, VIEW_H);
     gradient.addColorStop(0, colors[0]);
-    gradient.addColorStop(0.65, colors[1]);
-    gradient.addColorStop(1, '#080d18');
+    gradient.addColorStop(0.58, colors[1]);
+    gradient.addColorStop(1, '#070d17');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);
-    const glow = ctx.createRadialGradient(850, 240, 20, 850, 240, 450);
-    glow.addColorStop(0, `${colors[2]}25`);
+    const glow = ctx.createRadialGradient(930, 205, 12, 930, 205, 480);
+    glow.addColorStop(0, `${colors[2]}32`);
+    glow.addColorStop(0.45, `${colors[2]}12`);
     glow.addColorStop(1, 'transparent');
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+
+    ctx.save();
+    ctx.translate(930 - this.camera.x * 0.025, 190);
+    const moon = ctx.createRadialGradient(-22, -28, 8, 0, 0, 112);
+    moon.addColorStop(0, `${colors[2]}38`);
+    moon.addColorStop(0.72, `${colors[2]}15`);
+    moon.addColorStop(1, `${colors[2]}02`);
+    ctx.fillStyle = moon;
+    ctx.beginPath();
+    ctx.arc(0, 0, 112, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = `${colors[2]}25`;
+    ctx.lineWidth = 1;
+    for (const radius of [126, 151]) {
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 177, 46, -0.32, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+
     for (const star of this.stars) {
       const x = star.x - this.camera.x * star.depth;
       if (x < -10 || x > VIEW_W + 10) continue;
-      ctx.globalAlpha = 0.25 + Math.sin(this.worldTime * 1.5 + star.x) * 0.18;
+      ctx.globalAlpha = 0.24 + Math.sin(this.worldTime * 1.5 + star.x) * 0.17;
       ctx.fillStyle = colors[2];
       ctx.fillRect(x, star.y, star.size, star.size);
     }
     ctx.globalAlpha = 1;
-    ctx.fillStyle = 'rgba(4,8,18,.28)';
+    this.drawDreamArchitecture(ctx);
+
+    ctx.fillStyle = 'rgba(4,9,18,.2)';
     ctx.beginPath();
     ctx.moveTo(0, 570);
-    for (let x = 0; x <= VIEW_W; x += 90) ctx.lineTo(x, 450 + Math.sin(x * 0.008 + this.camera.x * 0.0008) * 90);
+    for (let x = 0; x <= VIEW_W; x += 70) ctx.lineTo(x, 440 + Math.sin(x * 0.007 + this.camera.x * 0.0007) * 72 + Math.sin(x * 0.017) * 24);
     ctx.lineTo(VIEW_W, 720);
     ctx.lineTo(0, 720);
     ctx.fill();
+    const mist = ctx.createLinearGradient(0, 460, 0, 700);
+    mist.addColorStop(0, 'transparent');
+    mist.addColorStop(0.55, `${colors[2]}08`);
+    mist.addColorStop(1, 'rgba(3,8,15,.25)');
+    ctx.fillStyle = mist;
+    ctx.fillRect(0, 430, VIEW_W, 290);
+  }
+
+  drawDreamArchitecture(ctx) {
+    const colors = this.level.palette;
+    const offset = (this.camera.x * 0.16) % 560;
+    ctx.save();
+    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = `${colors[2]}20`;
+    ctx.fillStyle = 'rgba(4,10,18,.18)';
+    for (let x = -offset - 560; x < VIEW_W + 560; x += 560) {
+      if (this.level.id === 'bellwright') {
+        ctx.beginPath();
+        ctx.moveTo(x + 80, 520);
+        ctx.lineTo(x + 80, 245);
+        ctx.arc(x + 240, 245, 160, Math.PI, 0);
+        ctx.lineTo(x + 400, 520);
+        ctx.stroke();
+        ctx.fillRect(x + 69, 245, 22, 275);
+        ctx.fillRect(x + 389, 245, 22, 275);
+        ctx.beginPath();
+        ctx.moveTo(x + 240, 50);
+        ctx.lineTo(x + 240, 165);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x + 208, 190);
+        ctx.quadraticCurveTo(x + 200, 235, x + 184, 248);
+        ctx.quadraticCurveTo(x + 240, 265, x + 296, 248);
+        ctx.quadraticCurveTo(x + 280, 235, x + 272, 190);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(x + 240, 256, 5, 0, Math.PI * 2);
+        ctx.fillStyle = `${colors[2]}25`;
+        ctx.fill();
+        ctx.fillStyle = 'rgba(4,10,18,.18)';
+      } else if (this.level.id === 'archivist') {
+        for (let column = 0; column < 4; column++) {
+          const px = x + 55 + column * 145;
+          ctx.fillRect(px, 280, 24, 250);
+          ctx.strokeRect(px - 7, 269, 38, 10);
+          ctx.strokeRect(px - 5, 514, 34, 12);
+        }
+        ctx.beginPath();
+        ctx.arc(x + 280, 250, 132, 0, Math.PI * 2);
+        ctx.arc(x + 280, 250, 105, 0, Math.PI * 2);
+        for (let tick = 0; tick < 24; tick++) {
+          const angle = tick / 24 * Math.PI * 2;
+          ctx.moveTo(x + 280 + Math.sin(angle) * 112, 250 + Math.cos(angle) * 112);
+          ctx.lineTo(x + 280 + Math.sin(angle) * 126, 250 + Math.cos(angle) * 126);
+        }
+        ctx.stroke();
+        ctx.save();
+        ctx.translate(x + 280, 250);
+        ctx.rotate(this.worldTime * 0.035);
+        ctx.beginPath();
+        ctx.moveTo(0, 18);
+        ctx.lineTo(0, -86);
+        ctx.moveTo(-18, 0);
+        ctx.lineTo(62, 0);
+        ctx.stroke();
+        ctx.restore();
+      } else {
+        for (let island = 0; island < 3; island++) {
+          const px = x + 90 + island * 180;
+          const py = 250 + Math.sin(island * 2 + this.worldTime * 0.08) * 55;
+          ctx.beginPath();
+          ctx.moveTo(px - 70, py);
+          ctx.lineTo(px + 70, py);
+          ctx.lineTo(px + 24, py + 95);
+          ctx.lineTo(px, py + 125);
+          ctx.lineTo(px - 35, py + 70);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          ctx.strokeRect(px - 25, py - 55, 50, 50);
+          ctx.beginPath();
+          ctx.moveTo(px - 80, py - 90);
+          ctx.lineTo(px + 80, py - 90);
+          ctx.stroke();
+        }
+      }
+    }
+    ctx.restore();
   }
 
   drawWorldDetails(ctx) {
@@ -536,23 +652,46 @@ export class DreamPlatformer {
     ctx.globalAlpha = p.disabled ? 0.14 : 1;
     const gradient = ctx.createLinearGradient(0, -p.h / 2, 0, p.h / 2);
     gradient.addColorStop(0, colors[1]);
-    gradient.addColorStop(1, '#0a1320');
+    gradient.addColorStop(0.32, '#142a35');
+    gradient.addColorStop(1, '#09121d');
     ctx.fillStyle = gradient;
     ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+    ctx.fillStyle = 'rgba(2,8,14,.32)';
+    ctx.beginPath();
+    ctx.moveTo(-p.w / 2, p.h / 2);
+    ctx.lineTo(p.w / 2, p.h / 2);
+    ctx.lineTo(p.w / 2 - 10, p.h / 2 + 7);
+    ctx.lineTo(-p.w / 2 + 13, p.h / 2 + 7);
+    ctx.closePath();
+    ctx.fill();
     ctx.fillStyle = colors[2];
-    ctx.globalAlpha *= 0.75;
-    ctx.fillRect(-p.w / 2, -p.h / 2, p.w, 3);
-    ctx.globalAlpha *= 0.4;
-    for (let x = -p.w / 2 + 18; x < p.w / 2; x += 44) {
+    ctx.globalAlpha *= 0.85;
+    ctx.fillRect(-p.w / 2, -p.h / 2, p.w, 2);
+    ctx.globalAlpha *= 0.3;
+    ctx.fillRect(-p.w / 2, -p.h / 2 + 5, p.w, 1);
+    ctx.globalAlpha *= 1.25;
+    for (let x = -p.w / 2 + 18; x < p.w / 2 - 8; x += 48) {
       ctx.beginPath();
-      ctx.moveTo(x, -p.h / 2 + 7);
-      ctx.lineTo(x + 8, -p.h / 2 + 13);
-      ctx.lineTo(x, -p.h / 2 + 19);
-      ctx.lineTo(x - 8, -p.h / 2 + 13);
+      ctx.moveTo(x, -p.h / 2 + 8);
+      ctx.lineTo(x + 7, -p.h / 2 + 14);
+      ctx.lineTo(x, -p.h / 2 + 20);
+      ctx.lineTo(x - 7, -p.h / 2 + 14);
       ctx.closePath();
       ctx.strokeStyle = colors[2];
       ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x + 16, -p.h / 2 + 8);
+      ctx.lineTo(x + 30, -p.h / 2 + 8);
+      ctx.stroke();
     }
+    ctx.globalAlpha *= 0.55;
+    ctx.strokeStyle = '#020810';
+    ctx.beginPath();
+    ctx.moveTo(-p.w / 2 + 12, -p.h / 2 + 2);
+    ctx.lineTo(-p.w / 2 + 12, p.h / 2);
+    ctx.moveTo(p.w / 2 - 12, -p.h / 2 + 2);
+    ctx.lineTo(p.w / 2 - 12, p.h / 2);
+    ctx.stroke();
     if (p.vanish && !p.disabled) {
       const left = p.vanish.on - ((this.worldTime + p.phase) % p.vanish.period);
       if (left < 0.65 && Math.floor(left * 12) % 2 === 0) ctx.globalAlpha = 0.25;
@@ -647,6 +786,19 @@ export class DreamPlatformer {
     ctx.fillStyle = '#ffe1f2';
     ctx.fillRect(-7, -3, 4, 3);
     ctx.fillRect(3, -3, 4, 3);
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = 'rgba(255,190,218,.65)';
+    ctx.lineWidth = 1;
+    ctx.save();
+    ctx.rotate(-0.35);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 30, 11, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = '#f5d58a';
+    ctx.beginPath();
+    ctx.arc(Math.cos(this.worldTime * 1.8) * 28, Math.sin(this.worldTime * 1.8) * 10, 2.5, 0, Math.PI * 2);
+    ctx.fill();
     if (enemy.health < enemy.maxHealth) {
       ctx.shadowBlur = 0;
       ctx.fillStyle = '#170d20';
@@ -727,16 +879,28 @@ export class DreamPlatformer {
 
   drawCheckpoint(ctx, point) {
     const active = this.checkpoint.x >= point.x;
+    ctx.save();
+    ctx.translate(point.x + 20, 520);
     ctx.strokeStyle = active ? '#f4d995' : 'rgba(155,215,214,.35)';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(point.x + 20, 620);
-    ctx.lineTo(point.x + 20, 525);
+    ctx.moveTo(0, 100);
+    ctx.lineTo(0, 5);
     ctx.stroke();
+    ctx.rotate(this.worldTime * (active ? 0.35 : 0.08));
+    for (const radius of [12, 20]) {
+      ctx.beginPath();
+      ctx.ellipse(0, 0, radius, radius * 0.45, 0.4, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.rotate(-this.worldTime * (active ? 0.35 : 0.08));
+    ctx.shadowColor = active ? '#f4d995' : '#8ac6c2';
+    ctx.shadowBlur = active ? 18 : 6;
     ctx.fillStyle = active ? '#ffe9a9' : '#8ac6c2';
     ctx.beginPath();
-    ctx.arc(point.x + 20, 520, active ? 7 : 4, 0, Math.PI * 2);
+    ctx.arc(0, 0, active ? 5 : 3, 0, Math.PI * 2);
     ctx.fill();
+    ctx.restore();
   }
 
   drawPlayer(ctx) {
@@ -749,8 +913,8 @@ export class DreamPlatformer {
     ctx.scale(p.facing, this.gravity);
     const running = Math.abs(p.vx) > 30 && p.grounded;
     const stride = running ? Math.sin(this.elapsed * 16) * 6 : 0;
-    ctx.strokeStyle = '#d9e6df';
-    ctx.lineWidth = 5;
+    ctx.strokeStyle = '#9fbdb7';
+    ctx.lineWidth = 4;
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(-5, p.h / 2 - 11);
@@ -761,9 +925,9 @@ export class DreamPlatformer {
     ctx.shadowColor = this.level.palette[2];
     ctx.shadowBlur = 13;
     const cloak = ctx.createLinearGradient(0, -20, 0, 22);
-    cloak.addColorStop(0, '#b6fff0');
-    cloak.addColorStop(0.25, '#3caaac');
-    cloak.addColorStop(1, '#173449');
+    cloak.addColorStop(0, '#82d9cb');
+    cloak.addColorStop(0.25, '#347b80');
+    cloak.addColorStop(1, '#142c3e');
     ctx.fillStyle = cloak;
     ctx.beginPath();
     ctx.moveTo(-10, -11);
@@ -773,18 +937,19 @@ export class DreamPlatformer {
     ctx.closePath();
     ctx.fill();
     ctx.shadowBlur = 0;
-    ctx.fillStyle = '#efd9bd';
+    ctx.fillStyle = '#112b3a';
     ctx.beginPath();
-    ctx.arc(0, -p.h / 2 + 10, 9, 0, Math.PI * 2);
+    ctx.arc(0, -p.h / 2 + 9, 11, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = '#163242';
+    ctx.fillStyle = '#eee2cc';
     ctx.beginPath();
-    ctx.arc(-1, -p.h / 2 + 7, 10, Math.PI, Math.PI * 2);
-    ctx.lineTo(9, -p.h / 2 + 8);
+    ctx.ellipse(2, -p.h / 2 + 10, 6.5, 8.5, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = '#13222a';
-    ctx.fillRect(4, -p.h / 2 + 10, 2, 2);
-    ctx.strokeStyle = '#fff0ad';
+    ctx.fillStyle = '#18323d';
+    ctx.fillRect(4, -p.h / 2 + 9, 2.5, 1.5);
+    ctx.fillStyle = '#c8a963';
+    ctx.fillRect(1, -p.h / 2 + 4, 1, 6);
+    ctx.strokeStyle = '#e3c47d';
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.moveTo(-9, -8);
@@ -825,15 +990,16 @@ export class DreamPlatformer {
     vignette.addColorStop(1, 'rgba(0,3,12,.62)');
     ctx.fillStyle = vignette;
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);
-    ctx.fillStyle = 'rgba(220,255,249,.45)';
-    ctx.font = '15px sans-serif';
+    ctx.fillStyle = 'rgba(220,255,249,.62)';
+    ctx.font = '12px "DM Sans", sans-serif';
+    ctx.textAlign = 'center';
     if (this.elapsed < 10) {
       const instructions = {
-        bellwright: 'W / ↑ — jump   ·   G — invert gravity   ·   Space — strike',
-        archivist: 'Shift — slide   ·   Hold Q — slow time   ·   R — rewind two seconds',
-        cartographer: 'G — gravity   ·   F — fly   ·   Q / R — time   ·   Space — shatter'
+        bellwright: 'W / ↑  JUMP     ·     G  INVERT GRAVITY     ·     SPACE  STRIKE',
+        archivist: 'SHIFT  SLIDE     ·     HOLD Q  SLOW TIME     ·     R  REWIND TWO SECONDS',
+        cartographer: 'G  GRAVITY     ·     F  FLY     ·     Q / R  TIME     ·     SPACE  SHATTER'
       };
-      ctx.fillText(instructions[this.level.id], 42, 680);
+      ctx.fillText(instructions[this.level.id], VIEW_W / 2, 190);
     }
   }
 }
